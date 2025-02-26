@@ -48,49 +48,8 @@ if ! command -v multiqc &>/dev/null; then
     exit 1
 fi
 
-# Step 3 - Download SRA data
-while IFS= read -r sra; do
-    echo "Downloading ${sra}"
 
-    # Step 3.1 - Prefetch the SRA data
-    if ! prefetch "${sra}"; then
-        echo "Error: prefetch failed for ${sra}"
-        exit 1
-    fi
-
-    # Step 3.2 - Convert SRA to FASTQ using fasterq-dump
-    if ! fasterq-dump --mem 6G \
-                      --threads 6 \
-                      --skip-technical \
-                      --outdir "${filename}/rawdata/" \
-                      --temp "${filename}" \
-                      --split-3 \
-                      "${sra}"; then
-        echo "Error: fasterq-dump failed for ${sra}"
-        exit 1
-    fi
-		
-	# Check if the files are paired-end or single-end
-    if [ -f "${filename}/rawdata/${sra}_1.fastq" ] && [ -f "${filename}/rawdata/${sra}_2.fastq" ]; then
-        # Paired-end reads
-        echo "Paired-end reads detected for $sra"
-        mv "${filename}/rawdata/${sra}_1.fastq" "${filename}/rawdata/${sra}_1.fq"
-        mv "${filename}/rawdata/${sra}_2.fastq" "${filename}/rawdata/${sra}_2.fq"
-        gzip "${filename}/rawdata/${sra}_1.fq" "${filename}/rawdata/${sra}_2.fq"
-    elif [ -f "${filename}/rawdata/${sra}.fastq" ]; then
-        # Single-end reads
-        echo "Single-end reads detected for $sra"
-        mv "${filename}/rawdata/${sra}.fastq" "${filename}/rawdata/${sra}_1.fq"
-        gzip "${filename}/rawdata/${sra}_1.fq"
-    else
-        echo "Error: No valid FASTQ files found for $sra"
-        exit 1
-    fi
-    echo "${sra} was downloaded and processed :)"
-done < "$1"
-
-# Step 4 - Run fastp on the rawdata folder
-eecho "Running fastp on the rawdata folder"
+echo "Running fastp on the rawdata folder"
 while IFS= read -r sra; do
     if [ -f "${filename}/rawdata/${sra}_1.fq.gz" ] && [ -f "${filename}/rawdata/${sra}_2.1.fq.gz" ]; then
     # Paired-end mode
@@ -120,13 +79,3 @@ while IFS= read -r sra; do
         exit 1
     fi
 done < "$1"
-
-# Step 6 - Re-Run MultiQC on the rawdata folder
-echo "Running MultiQC on the rawdata folder"
-multiqc "${filename}/reports/" -o "${filename}/reports/" -n "${filename}_multiqc_report_postqc"
-
-echo "MultiQC report generated in ${filename}/reports/${filename}_multiqc_report_postqc.html"
-
-echo "fastp processing completed for all SRA IDs."
-
-echo "End of the script"
