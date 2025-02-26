@@ -101,7 +101,7 @@ while IFS= read -r sra; do
             -O "${filename}/rawdata/${sra}_postqc_2.fq.gz" \
 			-j "${filename}/reports/${sra}_fastp.json" \
             -h "${filename}/reports/${sra}_fastp.html" \
-            -q 20 \ #Sets the quality threshold for filtering reads. Reads with average quality below this 
+            -q 30 \ #Sets the quality threshold for filtering reads. Reads with average quality below this 
             -u 40 \ #Sets the percentage of bases allowed to be below the quality threshold
             -n 5 \ #Discards reads containing more than this number of N bases
 		rm "${filename}/rawdata/${sra}_1.fq.gz" "${filename}/rawdata/${sra}_2.fq.gz"	
@@ -111,7 +111,7 @@ while IFS= read -r sra; do
 		    -o "${filename}/rawdata/${sra}_postqc_1.fq.gz" \
             -j "${filename}/reports/${sra}_fastp.json" \
 			-h "${filename}/reports/${sra}_fastp.html" \
-            -q 20 \
+            -q 30 \
             -u 40 \
             -n 5 \ 
 		rm "${filename}/rawdata/${sra}_1.fq.gz" 
