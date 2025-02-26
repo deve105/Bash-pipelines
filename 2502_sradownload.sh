@@ -76,12 +76,12 @@ while IFS= read -r sra; do
         echo "Paired-end reads detected for $sra"
         mv "${filename}/rawdata/${sra}_1.fastq" "${filename}/rawdata/${sra}_1.fq"
         mv "${filename}/rawdata/${sra}_2.fastq" "${filename}/rawdata/${sra}_2.fq"
-        gzip "${filename}/rawdata/${sra}_1.fq" "${filename}/rawdata/${sra}_2.fq"
+        gzip -f "${filename}/rawdata/${sra}_1.fq" "${filename}/rawdata/${sra}_2.fq"
     elif [ -f "${filename}/rawdata/${sra}.fastq" ]; then
         # Single-end reads
         echo "Single-end reads detected for $sra"
         mv "${filename}/rawdata/${sra}.fastq" "${filename}/rawdata/${sra}_1.fq"
-        gzip "${filename}/rawdata/${sra}_1.fq"
+        gzip -f "${filename}/rawdata/${sra}_1.fq"
     else
         echo "Error: No valid FASTQ files found for $sra"
         exit 1
@@ -90,7 +90,7 @@ while IFS= read -r sra; do
 done < "$1"
 
 # Step 4 - Run fastp on the rawdata folder
-eecho "Running fastp on the rawdata folder"
+echo "Running fastp on the rawdata folder"
 while IFS= read -r sra; do
     if [ -f "${filename}/rawdata/${sra}_1.fq.gz" ] && [ -f "${filename}/rawdata/${sra}_2.1.fq.gz" ]; then
     # Paired-end mode
