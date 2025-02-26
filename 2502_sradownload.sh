@@ -30,7 +30,7 @@ filename="${filename%.*}" # Removes the last extension
 echo "Step 1. Create a folder for the project '$filename'"
 if [ -d "$filename" ]; then
 	echo "Folder '$filename' already exists. Be careful"
-	mkdir mkdir -p "${filename}"/{rawdata,bam,reports}
+	mkdir -p "${filename}"/{rawdata,bam,reports}
 else
 	echo "New folder '$filename' created."
 	mkdir -p "${filename}"/{rawdata,bam,reports} #Creates the folder structure
@@ -38,9 +38,9 @@ fi
 
 # Step 2 - Check if sratoolkit is installed
 # Previously vdb-config -i should be configured.
-if command -v prefetch &>/dev/null; then
-	printf "Error: sratools is neither installed or not in the PATH.\n"
-	exit 1
+if ! command -v prefetch &>/dev/null || ! command -v fasterq-dump &>/dev/null; then
+    printf "Error: sratools is either not installed or not in the PATH.\n"
+    exit 1
 fi
 
 if ! command -v multiqc &>/dev/null; then
@@ -50,14 +50,26 @@ fi
 
 # Step 3 - Download SRA data
 while IFS= read -r sra; do
-	echo "downloading $sra"
-	prefetch "${sra}" && fasterq-dump --mem 6G \
-		--threads 6 \
-		--skip-technical \
-		--outdir "${filename}"/rawdata/ \ 
-		--temp "${filename}" \
-		--split-3 \
-		"${sra}"
+    echo "Downloading ${sra}"
+
+    # Step 3.1 - Prefetch the SRA data
+    if ! prefetch "${sra}"; then
+        echo "Error: prefetch failed for ${sra}"
+        exit 1
+    fi
+
+    # Step 3.2 - Convert SRA to FASTQ using fasterq-dump
+    if ! fasterq-dump --mem 6G \
+                      --threads 6 \
+                      --skip-technical \
+                      --outdir "${filename}/rawdata/" \
+                      --temp "${filename}" \
+                      --split-3 \
+                      "${sra}"; then
+        echo "Error: fasterq-dump failed for ${sra}"
+        exit 1
+    fi
+		
 	# Check if the files are paired-end or single-end
     if [ -f "${filename}/rawdata/${sra}_1.fastq" ] && [ -f "${filename}/rawdata/${sra}_2.fastq" ]; then
         # Paired-end reads
