@@ -55,14 +55,14 @@ if [ -f "${filename}/rawdata/${sra}_postqc_1.fq.gz" ] && [ -f "${filename}/rawda
     fastq2="${filename}/rawdata/${sra}_postqc_2.fq.gz"
     echo "Paired-end reads detected for $sra"
     bwa-mem2 mem -t 20 "${indexgenome}" "${fastq1}" "${fastq2}" | \
-    samtools view -o "${filename}/rawdata/${sra}.bam"
+    samtools view -o "${filename}/bam/${sra}.bam"
 
 elif [ -f "${filename}/rawdata/${sra}_postqc_1.fq.gz" ]; then
     # Single-end reads
     fastq1="${filename}/rawdata/${sra}_postqc_1.fq.gz"
     echo "Single-end reads detected for $sra"
     bwa-mem2 mem -t 20 "${indexgenome}" "${fastq1}" | \
-    samtools view -o "${filename}/rawdata/${sra}.bam"
+    samtools view -o "${filename}/bam/${sra}.bam"
 else
     echo "Error: No valid FASTQ files found for $sra"
     exit 1
