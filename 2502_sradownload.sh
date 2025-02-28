@@ -2,7 +2,7 @@
 
 set -euo pipefail #Stric mode
 
-echo "Script for SRA download by Daniel Enriquez-Vera"
+echo "Script for SRA download and QC by Daniel Enriquez-Vera"
 echo "Version V1.2 2025-02-20"
 
 #-If an argument is needed
