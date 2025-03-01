@@ -37,7 +37,7 @@ else
 fi
 
 # Previously bwa-mem index should be configured.
-if ! command -v samtools &>/dev/null || ! command -v OptiTypePipeline.py &>/dev/null; then
+if ! command -v samtools &>/dev/null; then
     printf "Error: samtools/OptiTypePipeline is either not installed or not in the PATH.\n"
     exit 1
 fi
