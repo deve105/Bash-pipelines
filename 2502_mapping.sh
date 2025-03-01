@@ -41,7 +41,7 @@ if ! command -v bwa-mem2 &>/dev/null; then
     exit 1
 fi
 
-# Step 2 - Check if bwa-mem2 is installed
+# Step 2 
 while IFS= read -r sra; do
     echo "Mapping ${sra}"
 
