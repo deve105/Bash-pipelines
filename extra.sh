@@ -80,5 +80,3 @@ while IFS= read -r sra; do
     fi
 done < "$1"
 
-ls bam/ | grep -E "\.bam$" | sed 's/\.bam$//' > Peru_IRID.txt
-For a list of files

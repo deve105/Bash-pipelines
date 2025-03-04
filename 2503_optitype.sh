@@ -42,6 +42,7 @@ if ! command -v samtools &>/dev/null; then
     exit 1
 fi
 
+project_directory="/home/labatl/devprojects/Peru_IRID/optitype"
 # Step 2 - Process each SRA identifier
 while IFS= read -r sra; do
     echo "HLA typing for ${sra}"
@@ -62,11 +63,21 @@ while IFS= read -r sra; do
 
     # Convert BAM to FASTQ
     echo "Converting BAM to FASTQ"
-    samtools sort -n "${bamoutput}_chr6.bam" -o "${bamoutput}_sorted_chr6.bam"
-    bedtools bamtofastq -i "${bamoutput}_sorted_chr6.bam" -fq "${bamoutput}_sorted_chr6_1.fastq" -fq2 "${bamoutput}_sorted_chr6_2.fastq"
+    samtools sort -n "${bamoutput}_chr6.bam" -o "${bamoutput}_sorted_chr6.bam" 2>/dev/null
+    bedtools bamtofastq -i "${bamoutput}_sorted_chr6.bam" -fq "${bamoutput}_sorted_chr6_1.fastq" 2>/dev/null -fq2 "${bamoutput}_sorted_chr6_2.fastq"
 
     # Clean up temporary files
     rm "${bamoutput}_chr6.bam" "${bamoutput}_sorted_chr6.bam"
+
+    fastq_1="${sra}_sorted_chr6_1.fastq"
+    fastq_2="${sra}_sorted_chr6_2.fastq"
+    sudo docker run \
+        -v "${project_directory}:/data/" \
+        -t fred2/optitype \
+        -d \
+        -i "/data/${fastq_1}" "/data/${fastq_2}" \
+        -o "/data/output/" \
+        -p "${sra}_"
 
 done < "$1"
 
