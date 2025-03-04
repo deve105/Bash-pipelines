@@ -30,26 +30,26 @@ filename="${filename%.*}" # Removes the last extension
 echo "Step 1. Creating e a folder for the project '$filename'"
 if [ -d "$filename" ]; then
 	echo "Folder '$filename' already exists. Be careful"
-	mkdir -p "${filename}"/optitype
+	mkdir -p "${filename}/HLA-LA/output"
 else
 	echo "New folder '$filename' created."
-	mkdir -p "${filename}"/optitype #Creates the folder structure
+	mkdir -p "${filename}/HLA-LA" #Creates the folder structure
 fi
 
 # Previously bwa-mem index should be configured.
-if ! command -v samtools &>/dev/null; then
-    printf "Error: samtools/OptiTypePipeline is either not installed or not in the PATH.\n"
+if ! command -v HLA-LA &>/dev/null; then
+    printf "Error: HLA-LA is either not installed or not in the PATH.\n"
     exit 1
 fi
 
-project_directory="/home/labatl/devprojects/Peru_IRID/optitype"
+project_directory="/home/labatl/devprojects/Peru_IRID/HLA-LA"
 # Step 2 - Process each SRA identifier
 while IFS= read -r sra; do
     echo "HLA typing for ${sra}"
 
     # Define paths
     bamfile="${filename}/bam/${sra}.bam"
-    bamoutput="${filename}/optitype/${sra}"
+    #bamoutput="${filename}/optitype/${sra}"
 
     # Check if the BAM file exists
     if [ ! -f "$bamfile" ]; then
@@ -59,26 +59,10 @@ while IFS= read -r sra; do
 
     # Step 3 - Extract reads mapped to Chromosome 6 (HLA)
     echo "Extracting reads mapped to Chromosome 6 (HLA) for ${sra}"
-    samtools view -b "$bamfile" chr6 > "${bamoutput}_chr6.bam"
-
-    # Convert BAM to FASTQ
-    echo "Converting BAM to FASTQ"
-    samtools sort -n "${bamoutput}_chr6.bam" -o "${bamoutput}_sorted_chr6.bam" 2>/dev/null
-    bedtools bamtofastq -i "${bamoutput}_sorted_chr6.bam" -fq "${bamoutput}_sorted_chr6_1.fastq" 2>/dev/null -fq2 "${bamoutput}_sorted_chr6_2.fastq"
-
-    # Clean up temporary files
-    rm "${bamoutput}_chr6.bam" "${bamoutput}_sorted_chr6.bam"
-
-    fastq_1="${sra}_sorted_chr6_1.fastq"
-    fastq_2="${sra}_sorted_chr6_2.fastq"
-    sudo docker run \
-        -v "${project_directory}:/data/" \
-        -t fred2/optitype \
-        -d \
-        -i "/data/${fastq_1}" "/data/${fastq_2}" \
-        -o "/data/output/" \
-        -p "${sra}_"
-
+    HLA-LA.pl --BAM "${bamfile}" \
+        --graph PRG_MHC_GRCh38_withIMGT \
+        --sampleID "${sra}" \
+        --maxThreads 20 \
+        --workingDir "${project_directory}" 
 done < "$1"
-
 echo "End of the script"
