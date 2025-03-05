@@ -7,7 +7,7 @@ echo "Version V1.2 2025-02-20"
 
 # VARIABLES
 maindir="/home/labatl/devprojects"
-indexgenome=indexgenome="/home/labatl/devapps/2407_references/2405project_hg38/2405_hg38htlv.fa"
+indexgenome="/home/labatl/devapps/2407_references/2405project_hg38/2405_hg38htlv.fa"
 project_directory="/home/labatl/devprojects/Peru_IRID/HLA-LA"
 echo "The base working directory is ${maindir}"
 
@@ -64,9 +64,10 @@ while IFS= read -r sra; do
         echo "HLA Typing"
         HLA-LA.pl --BAM "${bamq}_sorted.bam" \
         --graph PRG_MHC_GRCh38_withIMGT \
-        --sampleID "${bamq}" \
+        --sampleID ${newname} \
         --maxThreads 30 \
-        --workingDir "${project_directory}"
+        --workingDir "${project_directory}" \
+        --samtools_T "${indexgenome}"      
         rm "${bamq}.bam" "${bamq}_sorted.bam"
 done < "${maindir}/Peru_IRID/Peru_IRID_initial.txt"
 

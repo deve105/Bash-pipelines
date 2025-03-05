@@ -80,3 +80,9 @@ while IFS= read -r sra; do
     fi
 done < "$1"
 
+       HLA-LA.pl --BAM /home/labatl/devprojects/Peru_IRID/bam/SS02_sorted.bam \
+        --graph PRG_MHC_GRCh38_withIMGT \
+        --sampleID SS02 \
+        --maxThreads 30 \
+        --workingDir /home/labatl/devprojects/Peru_IRID/HLA-LA \
+        --samtools_T /home/labatl/devapps/2407_references/2405project_hg38/2405_hg38htlv.fa  
