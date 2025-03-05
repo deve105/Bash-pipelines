@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Loop through all files that match the pattern *.bam
-for file in *.bam; do
+for file in *.fastq; do
     # Check if the file exists (in case there are no matches)
     if [[ -e "$file" ]]; then
         # Extract the new name by removing the prefix (e.g., "17_")
