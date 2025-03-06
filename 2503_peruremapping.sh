@@ -66,9 +66,14 @@ while IFS= read -r sra; do
         --graph PRG_MHC_GRCh38_withIMGT \
         --sampleID ${newname} \
         --maxThreads 30 \
-        --workingDir "${project_directory}" \   
-        rm "${bamq}.bam" "${bamq}_sorted.bam"
-        rm -rf "${project_directory}/${newname}/*.bam" "${project_directory}/${newname}/*.bam.bai" "${project_directory}/${newname}/*.fastq" "${project_directory}/${newname}/*.txt" 
+        --workingDir "${project_directory}"
+        # Removing extra data    
+        rm -rf "${bamq}.bam" "${bamq}_sorted.bam" "${bamq}_sorted.bam.bai"
+        rm -rf "${fastq1}" "${fastq2}" 
+        rm -rf "${maindir}/Peru_IRID/HLA-LA/${newname}/*.bam" 
+        rm -rf "${maindir}/Peru_IRID/HLA-LA/${newname}/*.bam.bai" 
+        rm -rf "${maindir}/Peru_IRID/HLA-LA/${newname}/*.fastq"
+        rm -rf "${maindir}/Peru_IRID/HLA-LA/${newname}/*.txt"  
 done < "${maindir}/Peru_IRID/Peru_IRID_initial.txt"
 
 echo "Running MultiQC on the rawdata folder"
