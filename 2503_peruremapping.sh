@@ -24,7 +24,7 @@ while IFS= read -r sra; do
         echo "Error: Missing FASTQ files for ${sra}. Expected ${sra}R1_001.fastq.gz and ${sra}R3_001.fastq.gz."
         exit 1
     fi
-    newname=$(echo "${sra}" | sed -E 's/^.*Nakahata_//; s/_S[0-9].*$//')
+    newname=$(echo "${sra}" | sed -E 's/^.*Nakahata_//; s/_S[0-9].*$//' | sed -E 's/^.*IRID/IRID/')
         # copy and rename the fastq1 and fastq3
         echo "Copying and renaming ${sra}R1_001.fastq.gz to ${newname}_1.fq.gz" 
         rsync -av "${sra}R1_001.fastq.gz" "${maindir}/Peru_IRID/fastq/${newname}_1.fq.gz"
@@ -66,9 +66,9 @@ while IFS= read -r sra; do
         --graph PRG_MHC_GRCh38_withIMGT \
         --sampleID ${newname} \
         --maxThreads 30 \
-        --workingDir "${project_directory}" \
-        --samtools_T "${indexgenome}"      
+        --workingDir "${project_directory}" \   
         rm "${bamq}.bam" "${bamq}_sorted.bam"
+        rm -rf "${project_directory}/${newname}/*.bam" "${project_directory}/${newname}/*.bam.bai" "${project_directory}/${newname}/*.fastq" "${project_directory}/${newname}/*.txt" 
 done < "${maindir}/Peru_IRID/Peru_IRID_initial.txt"
 
 echo "Running MultiQC on the rawdata folder"
