@@ -70,10 +70,10 @@ while IFS= read -r sra; do
         # Removing extra data    
         rm -rf "${bamq}.bam" "${bamq}_sorted.bam" "${bamq}_sorted.bam.bai"
         rm -rf "${fastq1}" "${fastq2}" 
-        rm -rf "${maindir}/Peru_IRID/HLA-LA/${newname}/*.bam" 
-        rm -rf "${maindir}/Peru_IRID/HLA-LA/${newname}/*.bam.bai" 
-        rm -rf "${maindir}/Peru_IRID/HLA-LA/${newname}/*.fastq"
-        rm -rf "${maindir}/Peru_IRID/HLA-LA/${newname}/*.txt"  
+        rm -rf ${maindir}/Peru_IRID/HLA-LA/${newname}/*.bam 
+        rm -rf ${maindir}/Peru_IRID/HLA-LA/${newname}/*.bam.bai 
+        rm -rf ${maindir}/Peru_IRID/HLA-LA/${newname}/*.fastq
+        rm -rf ${maindir}/Peru_IRID/HLA-LA/${newname}/*.txt" 
 done < "${maindir}/Peru_IRID/Peru_IRID_initial.txt"
 
 echo "Running MultiQC on the rawdata folder"
