@@ -7,7 +7,7 @@ echo "Version V1.2 2025-02-20"
 
 # VARIABLES
 maindir="/home/labatl/devprojects"
-indexgenome="/home/labatl/devapps/2407_references/2405project_hg38/2405_hg38htlv.fa"
+indexgenome="/home/labatl/devapps/2407_references/1000g38/genome.fa"
 project_directory="/home/labatl/devprojects/Peru_IRID/HLA-LA"
 echo "The base working directory is ${maindir}"
 

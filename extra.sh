@@ -85,4 +85,4 @@ done < "$1"
         --sampleID SS02 \
         --maxThreads 30 \
         --workingDir /home/labatl/devprojects/Peru_IRID/HLA-LA \
-        --samtools_T /home/labatl/devapps/2407_references/2405project_hg38/2405_hg38htlv.fa  
+        --samtools_T /home/labatl/devapps/2407_references/1000g38 
