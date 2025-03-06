@@ -45,18 +45,18 @@ while IFS= read -r sra; do
             -n 5 \
             --detect_adapter_for_pe \
             --dont_eval_duplication \
-            -w 16
+            -w 42
 		rm "${maindir}/Peru_IRID/fastq/${newname}_1.fq.gz"  "${maindir}/Peru_IRID/fastq/${newname}_2.fq.gz" 
         fastq1="${maindir}/Peru_IRID/fastq/${newname}_postqc_1.fq.gz"
         fastq2="${maindir}/Peru_IRID/fastq/${newname}_postqc_2.fq.gz"
         bamq="${maindir}/Peru_IRID/bam/${newname}"
         #MAPPING
         echo "BWA-MEM2 mapping for ${newname}}"
-        bwa-mem2 mem -t 30 "${indexgenome}" "${fastq1}" "${fastq2}" | \
+        bwa-mem2 mem -t 42 "${indexgenome}" "${fastq1}" "${fastq2}" | \
         samtools view -o "${bamq}.bam"
         #SORTING
         echo "Sorting BAM file"
-        samtools sort -@ 30 -o "${bamq}_sorted.bam" "${bamq}.bam"
+        samtools sort -@ 42 -o "${bamq}_sorted.bam" "${bamq}.bam"
         #INDEXING
         echo "Indexing BAM file"
         samtools index "${bamq}_sorted.bam"
@@ -65,7 +65,7 @@ while IFS= read -r sra; do
         HLA-LA.pl --BAM "${bamq}_sorted.bam" \
         --graph PRG_MHC_GRCh38_withIMGT \
         --sampleID ${newname} \
-        --maxThreads 30 \
+        --maxThreads 42 \
         --workingDir "${project_directory}"
         # Removing extra data    
         rm -rf "${bamq}.bam" "${bamq}_sorted.bam" "${bamq}_sorted.bam.bai"
