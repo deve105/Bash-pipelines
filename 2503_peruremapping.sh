@@ -73,9 +73,9 @@ while IFS= read -r sra; do
         rm -rf ${maindir}/Peru_IRID/HLA-LA/${newname}/*.bam 
         rm -rf ${maindir}/Peru_IRID/HLA-LA/${newname}/*.bam.bai 
         rm -rf ${maindir}/Peru_IRID/HLA-LA/${newname}/*.fastq
-        rm -rf ${maindir}/Peru_IRID/HLA-LA/${newname}/*.txt" 
-done < "${maindir}/Peru_IRID/Peru_IRID_initial.txt"
+        rm -rf ${maindir}/Peru_IRID/HLA-LA/${newname}/*.txt
 
+done < "${maindir}/Peru_IRID/Peru_IRID_initial.txt"
 echo "Running MultiQC on the rawdata folder"
 multiqc "${maindir}/Peru_IRID/reports" -o "${maindir}/Peru_IRID" -n "multiqc_report_postqc"
 echo "MultiQC report generated in "${maindir}/Peru_IRID_multiqc_report_postqc.html"
