@@ -78,5 +78,5 @@ while IFS= read -r sra; do
 done < "${maindir}/Peru_IRID/Peru_IRID_initial.txt"
 echo "Running MultiQC on the rawdata folder"
 multiqc "${maindir}/Peru_IRID/reports" -o "${maindir}/Peru_IRID" -n "multiqc_report_postqc"
-echo "MultiQC report generated in "${maindir}/Peru_IRID_multiqc_report_postqc.html"
+echo "MultiQC report generated in ${maindir}/Peru_IRID_multiqc_report_postqc.html"
 
