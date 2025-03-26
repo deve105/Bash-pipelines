@@ -30,10 +30,10 @@ filename="${filename%.*}" # Removes the last extension
 echo "Step 1. Create a folder for the project '$filename'"
 if [ -d "$filename" ]; then
 	echo "Folder '$filename' already exists. Be careful"
-	mkdir -p "${filename}"/{rawdata,bam,reports}
+	mkdir -p "${filename}"/{rawdata,bam,reports,hlala}
 else
 	echo "New folder '$filename' created."
-	mkdir -p "${filename}"/{rawdata,bam,reports} #Creates the folder structure
+	mkdir -p "${filename}"/{rawdata,bam,reports,hlala} #Creates the folder structure
 fi
 
 # Step 2 - Check if sratoolkit is installed
@@ -59,8 +59,8 @@ while IFS= read -r sra; do
     fi
 
     # Step 3.2 - Convert SRA to FASTQ using fasterq-dump
-    if ! fasterq-dump --mem 6G \
-                      --threads 6 \
+    if ! fasterq-dump --mem 100G \
+                      --threads 32 \
                       --skip-technical \
                       --outdir "${filename}/rawdata/" \
                       --temp "${filename}" \
@@ -101,10 +101,43 @@ while IFS= read -r sra; do
             -O "${filename}/rawdata/${sra}_postqc_2.fq.gz" \
 			-j "${filename}/reports/${sra}_fastp.json" \
             -h "${filename}/reports/${sra}_fastp.html" \
-            -q 30 \ #Sets the quality threshold for filtering reads. Reads with average quality below this 
-            -u 40 \ #Sets the percentage of bases allowed to be below the quality threshold
-            -n 5 \ #Discards reads containing more than this number of N bases
-		rm "${filename}/rawdata/${sra}_1.fq.gz" "${filename}/rawdata/${sra}_2.fq.gz"	
+            -q 30 \
+            -u 40 \
+            -n 5 \
+            --detect_adapter_for_pe \
+            -w 42
+        # Removing extra files
+		rm "${filename}/rawdata/${sra}_1.fq.gz" "${filename}/rawdata/${sra}_2.fq.gz"
+        # New References
+        fastq1="${filename}/rawdata/${sra}_postqc_1.fq.gz"
+        fastq2="${filename}/rawdata/${sra}_postqc_2.fq.gz"
+        bamq="${filename}/bam/${sra}"
+        indexgenome="/home/labatl/devapps/2407_references/1000g38/genome.fa"
+        #MAPPING
+        echo "BWA-MEM2 mapping for ${sra}}"
+        bwa-mem2 mem -t 42 "${indexgenome}" "${fastq1}" "${fastq2}" | \
+        samtools view -o "${bamq}.bam"
+        #SORTING
+        echo "Sorting BAM file"
+        samtools sort -@ 42 -o "${bamq}_sorted.bam" "${bamq}.bam"
+        #INDEXING
+        echo "Indexing BAM file"
+        samtools index "${bamq}_sorted.bam"
+        #HLA Typing
+        echo "HLA Typing"
+        HLA-LA.pl --BAM "${bamq}_sorted.bam" \
+        --graph PRG_MHC_GRCh38_withIMGT \
+        --sampleID ${sra} \
+        --maxThreads 42 \
+        --workingDir "${filename}/hlala"
+        # Removing extra data    
+        rm -rf "${bamq}.bam" "${bamq}_sorted.bam" "${bamq}_sorted.bam.bai"
+        rm -rf "${fastq1}" "${fastq2}" 
+        rm -rf ${filename}/hlala/${sra}/*.bam 
+        rm -rf ${filename}/hlala/${sra}/*.bam.bai 
+        rm -rf ${filename}/hlala/${sra}/*.fastq
+        rm -rf ${filename}/hlala/${sra}/*.txt
+
     elif [ -f "${filename}/rawdata/${sra}_1.fq.gz" ]; then
         # Single-end mode
         fastp -i "${filename}/rawdata/${sra}_1.fq.gz"  \
@@ -113,8 +146,38 @@ while IFS= read -r sra; do
 			-h "${filename}/reports/${sra}_fastp.html" \
             -q 30 \
             -u 40 \
-            -n 5 \ 
-		rm "${filename}/rawdata/${sra}_1.fq.gz" 
+            -n 5 \
+            --detect_adapter_for_pe \
+            -w 42
+		rm "${filename}/rawdata/${sra}_1.fq.gz"
+        # New References
+        fastq1="${filename}/rawdata/${sra}_postqc_1.fq.gz"
+        bamq="${filename}/bam/${sra}"
+        indexgenome="/home/labatl/devapps/2407_references/1000g38/genome.fa"
+        #MAPPING
+        echo "BWA-MEM2 mapping for ${sra}}"
+        bwa-mem2 mem -t 42 "${indexgenome}" "${fastq1}" | \
+        samtools view -o "${bamq}.bam"
+        #SORTING
+        echo "Sorting BAM file"
+        samtools sort -@ 42 -o "${bamq}_sorted.bam" "${bamq}.bam"
+        #INDEXING
+        echo "Indexing BAM file"
+        samtools index "${bamq}_sorted.bam"
+        #HLA Typing
+        echo "HLA Typing"
+        HLA-LA.pl --BAM "${bamq}_sorted.bam" \
+        --graph PRG_MHC_GRCh38_withIMGT \
+        --sampleID ${sra} \
+        --maxThreads 42 \
+        --workingDir "${filename}/hlala"
+        # Removing extra data    
+        rm -rf "${bamq}.bam" "${bamq}_sorted.bam" "${bamq}_sorted.bam.bai"
+        rm -rf "${fastq1}" "${fastq2}" 
+        rm -rf ${filename}/hlala/${sra}/*.bam 
+        rm -rf ${filename}/hlala/${sra}/*.bam.bai 
+        rm -rf ${filename}/hlala/${sra}/*.fastq
+        rm -rf ${filename}/hlala/${sra}/*.txt 
     else
         echo "Error: No valid FASTQ files found for $sra"
         exit 1

@@ -59,7 +59,9 @@ while IFS= read -r sra; do
 
     # Step 3 - Extract reads mapped to Chromosome 6 (HLA)
     echo "Extracting reads mapped to Chromosome 6 (HLA) for ${sra}"
-    samtools view -b "$bamfile" chr6 > "${bamoutput}_chr6.bam"
+    samtools sort "$bamfile" -o "${bamfile}_sorted.bam"
+    samtools index "${bamfile}_sorted.bam"
+    samtools view -b "${bamfile}_sorted.bam" chr6 > "${bamoutput}_chr6.bam"
 
     # Convert BAM to FASTQ
     echo "Converting BAM to FASTQ"
