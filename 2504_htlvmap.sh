@@ -16,9 +16,9 @@ echo "The base working directory is ${maindir}"
 
 for file in *.fastq.gz; do
     echo "$file" | sed 's/R[0-9]_001.fastq.gz$//'
-done | uniq > "${maindir}/Peru_IRID/Peru_IRID_initial.txt"
+done | uniq > "${maindir}/Peru_IRID/Peru_IRID_initial2.txt"
 
-echo "Initial list of renamed files in ${maindir}/Peru_IRID/Peru_IRIDinitial.txt"
+echo "Initial list of renamed files in ${maindir}/Peru_IRID/Peru_IRIDinitial2.txt"
 
 while IFS= read -r sra; do
     if [ ! -f "${sra}R1_001.fastq.gz" ] || [ ! -f "${sra}R3_001.fastq.gz" ]; then
@@ -49,7 +49,7 @@ while IFS= read -r sra; do
             --detect_adapter_for_pe \
             --overrepresentation_analysis \
             --dont_eval_duplication \
-            --thread 42
+            --thread 16
 		rm "${maindir}/Peru_IRID/fastq/${newname}_1.fq.gz"  "${maindir}/Peru_IRID/fastq/${newname}_2.fq.gz" 
         fastq1="${maindir}/Peru_IRID/fastq/${newname}_postqc_1.fq.gz"
         fastq2="${maindir}/Peru_IRID/fastq/${newname}_postqc_2.fq.gz"
@@ -62,7 +62,7 @@ while IFS= read -r sra; do
         samtools index -@ 42 "${bamq}.bam"
         # Removing extra data    
         rm -rf "${fastq1}" "${fastq2}" 
-done < "${maindir}/Peru_IRID/Peru_IRID_initial.txt"
+done < "${maindir}/Peru_IRID/Peru_IRID_initial2.txt"
 echo "Running MultiQC on the rawdata folder"
 multiqc "${maindir}/Peru_IRID/reports" -o "${maindir}/Peru_IRID" -n "multiqc_report_postqc"
 echo "MultiQC report generated in ${maindir}/Peru_IRID_multiqc_report_postqc.html"
