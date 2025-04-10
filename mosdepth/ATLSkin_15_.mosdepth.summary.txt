@@ -1,0 +1,3 @@
+chrom	length	bases	mean	min	max
+J02029.1	9068	4583355	505.44	0	1156
+total	9068	4583355	505.44	0	1156

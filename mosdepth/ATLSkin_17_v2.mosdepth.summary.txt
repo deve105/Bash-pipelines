@@ -1,0 +1,5 @@
+chrom	length	bases	mean	min	max
+J02029.1	9068	6291	0.69	0	5
+J02029.1_region	21385	15774	0.74	0	5
+total	9068	6291	0.69	0	5
+total_region	21385	15774	0.74	0	5
