@@ -2,12 +2,11 @@
 
 #set #-euo pipefail # Strict mode
 
-echo "Script to concatenate txt files from HLA-LA output"
-echo "Version V1.3 2025-03-10"
+echo "Script to concatenate txt files from mosdepth output"
+echo "Version V1.3 2025-04-10"
 
 maindir="/home/labatl/devprojects/Peru_IRID"
 output_file="${maindir}/hla_la_concatenated_output.txt"
-skipped_log="${maindir}/hla_la_skipped_log.txt"
 
 # Clear the output file and skipped files log
 > "$output_file"
