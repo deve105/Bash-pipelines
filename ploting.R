@@ -46,3 +46,27 @@ for (i in seq_along(batches)) {
         dpi = 300
     )
 }
+
+
+## Plotting by regions
+
+regions_cov <- read_tsv("2504new_combined_output.tsv", col_names = FALSE) |>
+    dplyr::rename(position = 2, region = 4, coverage = 5, sample = 6) |>
+    mutate(country=case_when(
+        grepl("IRID", sample) ~ "Peru",
+        grepl("ATLSkin", sample) ~ "Japan",
+        .default = NA
+    )) 
+unique(regions_cov$country)
+
+regions_cov |>
+    filter(!is.na(country)) |>
+    tidyplot(x=region, y=coverage, color=country) |>
+    add_median_dot() |>
+    add_ci95_errorbar() |>
+    adjust_x_axis(rotate_labels  = 90) |>
+    save_plot(
+        filename = "2504_combined_Japanese_output_regions.png",
+        background = "transparent",
+        dpi = 300
+    )
