@@ -61,18 +61,17 @@ while IFS= read -r sample_ID; do
     rm -rf ${proj_dir}/htlv1/${sample_ID}_htlv1_all.bam
     # Picard to mark duplicates
     picard MarkDuplicates \
-    I=${proj_dir}/htlv1/${sample_ID}_htlv1_final.sorted.bam \
-    O=${proj_dir}/htlv1/${sample_ID}_htlv1_marked.bam \
-    M=${proj_dir}/htlv1/${sample_ID}_htlv1_dup_metrics.txt \
-    CREATE_INDEX=true \
-    VALIDATION_STRINGENCY=SILENT \
-    REMOVE_DUPLICATES=true
+    -I ${proj_dir}/htlv1/${sample_ID}_htlv1_final.sorted.bam \
+    -O ${proj_dir}/htlv1/${sample_ID}_htlv1_marked.bam \
+    -M ${proj_dir}/htlv1/${sample_ID}_htlv1_dup_metrics.txt \
+    -CREATE_INDEX true \
+    -VALIDATION_STRINGENCY SILENT \
+    -REMOVE_DUPLICATES true
     rm -rf ${proj_dir}/htlv1/${sample_ID}_htlv1_final.sorted.bam
     # Coverage analysis with mosdepth
     echo "Running mosdepth for coverage analysis"
-    mosdepth -t ${thrx} -n -m -Q 20\
-    --by 100 \
-        ${proj_dir}/mosdepth/${sample_ID}_v3_ \
+    mosdepth -t ${thrx} -n -m --fast-mode imp--by 100 \
+        ${proj_dir}/mosdepth/${sample_ID}_v4_ \
         ${proj_dir}/htlv1/${sample_ID}_htlv1_marked.bam
         
     #${proj_dir}/J020209_1.fasta.bed 
