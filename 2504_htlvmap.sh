@@ -25,7 +25,7 @@ while IFS= read -r sra; do
         echo "Error: Missing FASTQ files for ${sra}. Expected ${sra}R1_001.fastq.gz and ${sra}R3_001.fastq.gz."
         exit 1
     fi
-    newname=$(echo "${sra}" | sed -E 's/^.*Nakahata_//; s/_S[0-9].*$//' | sed -E 's/^.*IRID/IRID/')
+    newname=$(echo "${sra}" | sed -E 's/^.*Nakahata_//' | sed -E 's/^.*IRID/IRID/') #; s/_S[0-9].*$//
         # copy and rename the fastq1 and fastq3
         echo "Copying and renaming ${sra}R1_001.fastq.gz to ${newname}_1.fq.gz" 
         rsync -av "${sra}R1_001.fastq.gz" "${maindir}/Peru_IRID/fastq/${newname}_1.fq.gz"
