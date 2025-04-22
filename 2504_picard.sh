@@ -70,11 +70,11 @@ while IFS= read -r sample_ID; do
     rm -rf ${proj_dir}/htlv1/${sample_ID}_htlv1_final.sorted.bam
     # Coverage analysis with mosdepth
     echo "Running mosdepth for coverage analysis"
-    mosdepth -t ${thrx} -n -m --fast-mode imp--by 100 \
+    mosdepth -t ${thrx} -n --by ${proj_dir}/J020209_1.fasta.bed \
         ${proj_dir}/mosdepth/${sample_ID}_v4_ \
         ${proj_dir}/htlv1/${sample_ID}_htlv1_marked.bam
         
-    #${proj_dir}/J020209_1.fasta.bed 
+    #${proj_dir}/J020209_1.fasta.bed -m --fast-mode 
     # Additional QC: Insert size metrics (for paired-end data)
     #picard CollectInsertSizeMetrics \
     #    I=${proj_dir}/htlv1/${sample_ID}_htlv1_marked.bam \
