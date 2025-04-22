@@ -1,9 +1,10 @@
-pacman::p_load(tidyverse, tidyplots)
+pacman::p_load(tidyverse, tidyplots, zoo, signal)
 
-read_tsv("2504_combined_output.tsv", col_names=FALSE) |>
+read_tsv("data/2504_combined_output.tsv", col_names=FALSE) |>
     dplyr::rename(position=2, coverage=4, sample=5) |>
+    
     tidyplot(x=position, y=coverage) |>
-    add_median_line() |>
+    add_median_line() #|>
     tidyplots::save_plot(
         filename = "2504_combined_output.png",
         background = "transparent",
