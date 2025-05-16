@@ -4,3 +4,106 @@ conda config --add channels defaults
 conda config --add channels bioconda
 conda config --add channels conda-forge
 conda config --set channel_priority strict
+
+`\t` tab-delimited format is the most common
+`\n` linefeed character (Linux and OS), Windows (\r\n)`
+
+head -n 3 file.txt
+tail -n +2 text.txt
+(head -n 2; tail -n 2) < file.txt
+ # inspect the first and last 3 lines of a file
+i() { (head -n 2; tail -n 2) < "$1" | column -t}
+
+# Commands for less
+space - next page
+b - previous page
+g - first
+G - Last line
+j - down one 
+k - up one line 
+/<pattern> - search forward
+?<pattern> - search backward
+n - repeat last search (downward)
+N - repeat last search (backward)
+
+a complex pipeline with bugs | less (this will stop the pipeline to visualiza the output)
+
+be careful with wc - l (it doesnt care about empty lines)
+
+grep -c "[^\\n\\t]" text.txt
+# To obtain the number of columns after the 5 comments rows
+tail -n +5 | awk - F "\t" '{print NF; exit}' 
+## this is more robust (grep is the fastest)
+grep -v "^#" | awk - F "\t" '{print NF; exit}' 
+
+cut -f 1-4
+# but it wont order it
+cut -f 1,3 
+# treat the output as a table
+column -t 
+grep "pattern" --color=auto
+grep -v -w the notebook
+# For extended regular expressions
+grep - E 
+
+BSD utils - OS (brew install coreutils)
+GNU coreutils - Linux
+
+# ASCII-encoded
+file file.txt
+hexdump -c improperfile.txt
+LC_CTYPE=C grep --color='auto' -P "[\x80-\xFF]" improper.fa
+alias nonascii="LC_CTYPE=C grep --color='auto' -n -P '[\x80-\xFF]'"
+
+sort | uniq
+
+sort -k1,1 -k2,2n example.bed
+
+sort -k1,1 -k2,2n -c example_sorted.bed
+sort -k1,1V # for chromosomes or alphanumeric
+echo $?
+
+join -1 1 -2 1 example_sorted.bed example_lengths.txt > example_with_lengths.txt
+
+# unpaired
+join -1 1 -2 1 -a 1 example_sorted.bed example_lengths_alt.txt # GNU join only
+
+# AWK (better to use gawk for GNU)
+
+one record at a time (one line)
+the entire record is $0
+
+pattern { action }
+"""
+a == b
+a != b
+a < b 
+a > b
+a <= b
+a >= b
+a ~ b # matches regular expression
+a && b 
+a || b 
+
+"""
+awk '$1 ~ /chr2|chr3/ { print $0 "\t" $3 - $2 }' example.bed
+
+awk 'BEGIN{ s = 0 }; { s += ($3-$2) }; END{ print "mean: " s/NR };' example.bed
+NR: number of records that were read
+set the record (RS), output field (OFS), and out‐ put record (ORS) separators.
+awk -v VAR=val
+
+awk -F"," -v OFS="\t" {print $1,$2,$3}
+awk 'NR >= 3 && NR <= 5' example.bed
+
+awk '/Lypla1/ { feature[$3] += 1 }; \
+        END { for (k in feature)          \
+        print k "\t" feature[k] }' Mus_musculus.GRCm38.75_chr1.gtf
+
+awk functions:
+length(s)
+tolower(s)
+toupper(s)
+substr(s, i, j)
+split(s, x, d)
+sub(f, r, s)
