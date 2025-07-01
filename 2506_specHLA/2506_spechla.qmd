@@ -1,0 +1,18 @@
+
+## uv installation
+
+https://github.com/astral-sh/uv
+
+```pip3 ins{bash}
+#Using pip
+pip install uv 
+
+# On macOS and Linux.
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+source .venv/bin/activate
+
+mamba activate spechla>en
+
+nextflow run nf-core/sarek -r 3.5.1 -profile docker,targeted --input ./sample.csv --outdir ./ --genome GATK.GRCh38 --tools freebayes --no_intervals
