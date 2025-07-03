@@ -7,7 +7,8 @@ echo "Version V1.2 2025-02-20"
 
 # VARIABLES
 maindir="/home/labatl/devprojects"
-indexgenome="/home/labatl/devapps/2407_references/1000g38/genome.fa"
+# Updated to use GRCh38 reference with HLA decoy sequences (recommended for HLA analysis)
+indexgenome="/home/labatl/devapps/2407_references/GRCh38/GRCh38_full_analysis_set_plus_decoy_hla.fa"
 project_directory="/home/labatl/devprojects/Peru_IRID/HLA-LA"
 echo "The base working directory is ${maindir}"
 

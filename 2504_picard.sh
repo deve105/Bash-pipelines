@@ -53,12 +53,14 @@ while IFS= read -r sample_ID; do
     rm -rf ${proj_dir}/htlv1/${sample_ID}_htlv1_specific.bam \
         ${proj_dir}/htlv1/${sample_ID}_discordant.bam \
         ${proj_dir}/htlv1/${sample_ID}_split.bam
+
     # Sort and Index
     samtools sort -@ ${thrx} -m 2G\
         ${proj_dir}/htlv1/${sample_ID}_htlv1_all.bam \
         -o ${proj_dir}/htlv1/${sample_ID}_htlv1_final.sorted.bam
     samtools index ${proj_dir}/htlv1/${sample_ID}_htlv1_final.sorted.bam
     rm -rf ${proj_dir}/htlv1/${sample_ID}_htlv1_all.bam
+    
     # Picard to mark duplicates
     picard MarkDuplicates \
     -I ${proj_dir}/htlv1/${sample_ID}_htlv1_final.sorted.bam \
