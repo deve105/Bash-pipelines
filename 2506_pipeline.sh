@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#set -euo pipefail
+set -euo pipefail
 
 echo "========================================"
 echo "✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅"
@@ -8,104 +8,80 @@ echo "Script for FASTQ virus and mutations by Daniel Enriquez-Vera"
 echo "Version V1 2025-06-3"
 
 ## Input
-inputdir="/home/htlvatl/Documents/devprojects/Peru_IRID/fastq"
-outputdir="/home/htlvatl/Documents/devprojects/Peru_IRID"
-ref_genome="/home/htlvatl/Documents/devapps/references/GRCh38_HTLV1.fa"
-conda_env="devpipe"
+inputdir="/media/labatl/HD-PCGU3-A/test"
+outputdir="/home/labatl/devprojects/test"
+ref_genome="/home/labatl/devapps/2407_references/1000g38/genome.fa"
+htlv1_ref="/home/labatl/devapps/2407_references/htlv1/J20209_1.fasta"
+nproc=32
+picard="/home/labatl/devapps/picard.jar"
+java_mem="-Xmx32G -XX:MaxDirectMemorySize=32G"
+
+####Directories checks#########################
+###############################################
+### Check if input directory exists
+if [ ! -d "$inputdir" ]; then
+    echo "❌ Error: Input directory does not exist: $inputdir"
+    exit 1
+else
+    echo "✅ Input directory exists: $inputdir"
+fi
+
+### Check if reference genome exists
+#if [ ! -f "$ref_genome" ]; then
+#    echo "❌ Error: Reference genome file does not exist: $ref_genome"
+#    exit 1
+#else
+#    echo "✅ Reference genome file exists: $ref_genome"
+#fi
+
+### Check if output directory exists, create if not
+if [ ! -d "$outputdir" ]; then
+    echo "⚠️ Output directory does not exist. Creating: $outputdir"
+    mkdir -p "$outputdir"
+    if [ $? -ne 0 ]; then
+        echo "❌ Error: Failed to create output directory: $outputdir"
+        exit 1
+    fi
+else
+    echo "✅ Output directory exists: $outputdir"
+fi
 
 ## Folder structure inside outputdir
+mkdir -p "${outputdir}/"{temp,fastp,bam,reports,virus,human}
 
-mkdir -p "${outputdir}/Peru_IRID"/{temp,fastp,bam,reports}
-
-## Software paths *mamba environment fastp
-bwamem2="/home/htlvatl/Documents/devapps/bwa-mem2-2.3_x64-linux/bwa-mem2.avx2"
-
-########################### Software checks ###########################
-
+####Software checks############################
+###############################################
 ### Check if BWA-MEM2 is installed and executable
-if [ ! -f "$bwamem2" ]; then
-    printf "❌ Error: BWA-MEM2 executable not found at: %s\n" "$bwamem2"
-    echo "Please check if the path is correct or install BWA-MEM2"
-    exit 1
-elif [ ! -x "$bwamem2" ]; then
-    printf "❌ Error: BWA-MEM2 is not executable: %s\n" "$bwamem2"
-    echo "Run: chmod +x $bwamem2"
-    exit 1
-else
-    printf "✅ BWA-MEM2: Found at %s\n" "$bwamem2"
-    # Test if it actually works (improved testing)
-    if "$bwamem2" 2>&1 | grep -qi "usage\|bwa-mem2\|version" || \
-       "$bwamem2" mem 2>&1 | grep -qi "usage\|required\|options"; then
-        printf "✅ BWA-MEM2: Executable and working\n"
-    else
-        printf "⚠️  Warning: BWA-MEM2 executable found but may not work properly\n"
-    fi
-fi
-
-### Check if conda/mamba environment is activated
-if ! command -v conda &> /dev/null; then
-    echo "❌ Error: conda/mamba is not installed or not in PATH."
-    echo "Please install Miniforge or Anaconda and activate your environment."
-    exit 1
-else
-    echo "✅ Conda/mamba is available."
-    if ! conda info --envs | grep -q "$conda_env"; then
-        echo "❌ Error: '$conda_env' environment not found."
-        echo "Please create it with: mamba create -n $conda_env -c bioconda -c conda-forge bwa-mem2 samtools fastp multiqc python=3.9 -y"
+for cmd in bwa-mem2 samtools fastp multiqc java; do
+    if ! command -v $cmd &> /dev/null; then
+        echo "❌ Error: $cmd is not installed or not in PATH"
         exit 1
     else
-        echo "✅ '$conda_env' environment is available."
+        echo "✅ $cmd is available"
     fi
-fi  
-
-### Check if the environment is currently activated
-current_env=$(conda info --json | grep -o '"active_prefix_name": "[^"]*"' | cut -d'"' -f4)
-if [ "$current_env" = "$conda_env" ]; then
-    echo "✅ '$conda_env' environment is currently ACTIVATED."
-else
-    echo "⚠️  WARNING: '$conda_env' environment exists but is NOT activated."
-    exit 1
-fi  
-
-### Check if fastp is installed
-if ! command -v fastp &> /dev/null; then
-    echo "❌ Error: fastp is not installed or not in PATH."
-    echo "Please install it in your conda/mamba environment."
-    exit 1
-else
-    echo "✅ fastp is available."
-fi
-
-### Check if multiqc is installed
-if ! command -v multiqc &> /dev/null; then
-    echo "❌ Error: multiqc is not installed or not in PATH."
-    echo "Please install it in your conda/mamba environment."
-    exit 1
-else
-    echo "✅ multiqc is available."
-fi
-
-### Check if samtools is installed
-if ! command -v samtools &> /dev/null; then
-    echo "❌ Error: samtools is not installed or not in PATH."
-    echo "Please install it in your conda/mamba environment."
-    exit 1
-else
-    echo "✅ samtools is available."
-fi
-#######################################################
-
+done
+###############################################
+####Initial List###############################
+###############################################
 # Generate a list text of all fastq files in the input directory
+date_suffix=$(date +"%y%m%d")
+
 echo "✅ Reading FASTQ files from ${inputdir} and generating initial list..."
 for file in ${inputdir}/*.fastq.gz; do
     echo "$file" | sed 's/R[0-9]_001.fastq.gz$//'
-done | uniq > "${outputdir}/Peru_IRID_list.txt"
-echo "✅ Initial list of renamed files in ${outputdir}/Peru_IRID_list.txt"
+done | uniq > "${outputdir}/${date_suffix}_project_list.txt"
 
+echo "✅ Initial list of renamed files in ${outputdir}/${date_suffix}_project_list.txt"
+
+project_list="${outputdir}/${date_suffix}_project_list.txt"
+
+###############################################
+####Initial List###############################
+###############################################
 # Loop through the list of SRA files and process them
 
 while IFS= read -r sra; do
-    if [ ! -f "${inputdir}/${sra}R1_001.fastq.gz" ] || [ ! -f "${inputdir}/${sra}R3_001.fastq.gz" ]; then
+    if [ ! -f "${sra}R1_001.fastq.gz" ] || [ ! -f "${sra}R3_001.fastq.gz" ]; then
         echo "❌ Error: Missing FASTQ files for ${sra}"
         echo "Expected ${sra}R1_001.fastq.gz and ${sra}R3_001.fastq.gz in ${inputdir}."
         exit 1
@@ -117,21 +93,22 @@ while IFS= read -r sra; do
     echo "✅ New name for SRA ${sra} is ${newname}"
     
     # Copy and rename the fastq files
-    echo "Copying and renaming ${sra}R1_001.fastq.gz to ${newname}_1.fq.gz"
-    rsync -av "${inputdir}/${sra}R1_001.fastq.gz" "${outputdir}/Peru_IRID/temp/${newname}_1.fq.gz"
-    echo "Copying and renaming ${sra}R3_001.fastq.gz to ${newname}_2.fq.gz"
-    rsync -av "${inputdir}/${sra}R3_001.fastq.gz" "${outputdir}/Peru_IRID/temp/${newname}_2.fq.gz"
-    echo "${newname}" >> "${outputdir}/Peru_IRID/Peru_copied.txt"
-    echo "✅ Fastq_1 and Fastq_2 of ${newname} copied to ${outputdir}/Peru_IRID/temp/"
+    echo "...Copying and renaming ${sra}R1_001.fastq.gz to ${newname}_1.fq.gz"
+    rsync -av "${sra}R1_001.fastq.gz" "${outputdir}/temp/${newname}_1.fq.gz"
+    echo "...Copying and renaming ${sra}R3_001.fastq.gz to ${newname}_2.fq.gz"
+    rsync -av "${sra}R3_001.fastq.gz" "${outputdir}/temp/${newname}_2.fq.gz"
+    echo "${newname}" >> "${outputdir}/${date_suffix}_foranalysis.txt"
+    echo "${sra},${newname}" >> "${outputdir}/${date_suffix}_ref.txt"
+    echo "✅ Fastq_1 and Fastq_2 of ${newname} copied to ${outputdir}/temp/"
 
     # Quality control with fastp
     echo "Quality control for ${newname}"
-    fastp -i "${outputdir}/Peru_IRID/temp/${newname}_1.fq.gz" \
-        -I "${outputdir}/Peru_IRID/temp/${newname}_2.fq.gz" \
-        -o "${outputdir}/Peru_IRID/temp/${newname}_postqc_1.fq.gz" \
-        -O "${outputdir}/Peru_IRID/temp/${newname}_postqc_2.fq.gz" \
-        -j "${outputdir}/Peru_IRID/fastp/${newname}_fastp.json" \
-        -h "${outputdir}/Peru_IRID/fastp/${newname}_fastp.html" \
+    fastp -i "${outputdir}/temp/${newname}_1.fq.gz" \
+        -I "${outputdir}/temp/${newname}_2.fq.gz" \
+        -o "${outputdir}/temp/${newname}_postqc_1.fq.gz" \
+        -O "${outputdir}/temp/${newname}_postqc_2.fq.gz" \
+        -j "${outputdir}/fastp/${newname}_fastp.json" \
+        -h "${outputdir}/fastp/${newname}_fastp.html" \
         --qualified_quality_phred 30 \
         --unqualified_percent_limit 40 \
         --n_base_limit 5 \
@@ -145,23 +122,24 @@ while IFS= read -r sra; do
         --thread ${nproc}
     echo "✅ Quality control completed for ${newname}"
 	
-    rm "${outputdir}/Peru_IRID/temp/${newname}_1.fq.gz" \
-        "${outputdir}/Peru_IRID/temp/${newname}_2.fq.gz"
+    rm "${outputdir}/temp/${newname}_1.fq.gz" \
+        "${outputdir}/temp/${newname}_2.fq.gz"
     echo "✅ ${newname}_1.fq.gz and ${newname}_2.fq.gz removed from temp folder"
 
-    fastq1="${outputdir}/Peru_IRID/temp/${newname}_postqc_1.fq.gz"
-    fastq2="${outputdir}/Peru_IRID/temp/${newname}_postqc_2.fq.gz"
-    bamq="${outputdir}/Peru_IRID/bam/${newname}"
+    fastq1="${outputdir}/temp/${newname}_postqc_1.fq.gz"
+    fastq2="${outputdir}/temp/${newname}_postqc_2.fq.gz"
+    bamq="${outputdir}/bam/${newname}"
     
     #MAPPING
     echo "BWA-MEM2 mapping for ${newname}"
-    "$bwamem2" mem \
+    bwa-mem2 mem \
         -t ${nproc} \
+        -M \
         -R "@RG\tID:${newname}\tSM:${newname}\tPL:ILLUMINA" \
         "${ref_genome}" \
         "${fastq1}" \
         "${fastq2}" | \
-    samtools view -@ 8 -bS - > "${bamq}.bam"
+    samtools view -@ ${nproc} -bS - > "${bamq}.bam"
     echo "✅ BAM file created: ${bamq}.bam"
 
     #SORTING
@@ -177,23 +155,212 @@ while IFS= read -r sra; do
     rm -f "${fastq1}" "${fastq2}" "${bamq}.bam"
     echo "✅ Intermediate BAM file cleaned up"
 
+    ###############################################
+    ###############################################
+    ###############################################
+    
+    echo "======== EXTRACTING HUMAN READS OF INTEREST ========"
+    # Extract well-mapped human reads (properly paired, MAPQ>=30)
+    echo "Extracting high-quality human reads..."
+    samtools view -@ ${nproc} -b -f 2 -q 30 \
+        "${bamq}_sorted.bam" > \
+        "${bamq}_hg38q30_sorted.bam"
+    # Sort and index the high-quality BAM
+    samtools sort -@ ${nproc} -o "${outputdir}/human/${newname}_final.bam" \
+        "${bamq}_hg38q30_sorted.bam"
+    samtools index "${outputdir}/human/${newname}_final.bam"
+
+    # Mark duplicates
+    echo "Marking duplicates in human reads..."
+    java -jar /home/labatl/devapps/picard.jar MarkDuplicates \
+        -I "${outputdir}/human/${newname}_final.bam" \
+        -O "${outputdir}/human/${newname}_final_dedup.bam" \
+        -M "${outputdir}/human/${newname}_dedup_metrics.txt" \
+        -CREATE_INDEX true \
+        -VALIDATION_STRINGENCY SILENT \
+        -REMOVE_DUPLICATES true
+    
+    echo "✅ Human reads processed and duplicates marked: ${outputdir}/human/${newname}_final_dedup.bam"
+    rm -f "${outputdir}/human/${newname}_final.bam" \
+          "${outputdir}/human/${newname}_final.bam.bai" \
+          "${bamq}_hg38q30_sorted.bam"
+    
+    echo "✅ Cleaned up intermediate human BAM files"
+
+    # Generate coverage and statistics
+    echo "Generating statistics..."
+    samtools flagstat "${outputdir}/human/${newname}_final_dedup.bam"  > \
+        "${outputdir}/reports/${newname}.human.stats.txt"
+    samtools coverage "${outputdir}/human/${newname}_final_dedup.bam"  > \
+        "${outputdir}/reports/${newname}.human.coverage.txt"
+    echo "✅ Statistics generated for human reads: ${outputdir}/reports/${newname}.human.stats.txt"
+
+    ###############################################
+    ###############################################
+    ###############################################
+    # Extract reads that might contain HTLV-1
+    echo "Extracting potential viral reads..."
+    # Get unmapped and partially mapped reads for HTLV-1 analysis
+    samtools view -@ ${nproc} -b -f 4 "${bamq}_sorted.bam" > \
+        "${outputdir}/virus/${newname}_unmapped.bam"
+    
+    # Convert to FASTQ for viral mapping
+    samtools fastq -@ ${nproc} \
+        "${outputdir}/virus/${newname}_unmapped.bam" \
+        -1 "${outputdir}/virus/${newname}_viral_1.fq.gz" \
+        -2 "${outputdir}/virus/${newname}_viral_2.fq.gz" \
+        -0 /dev/null -s "${outputdir}/virus/${newname}_viral_s.fq.gz"
+    
+    # Map to HTLV-1 reference
+    echo "Mapping potential viral reads to HTLV-1..."
+    bwa-mem2 mem -t ${nproc} \
+        -R "@RG\tID:${newname}\tSM:${newname}\tPL:ILLUMINA" \
+        "${htlv1_ref}" \
+        "${outputdir}/virus/${newname}_viral_1.fq.gz" \
+        "${outputdir}/virus/${newname}_viral_2.fq.gz"| \
+    samtools view -@ ${nproc} -bS - > "${outputdir}/virus/${newname}_htlv1.bam"
+    
+    # Sort, index and filter viral BAM
+    samtools sort -@ ${nproc} -o "${outputdir}/virus/${newname}_htlv1_sorted.bam" \
+        "${outputdir}/virus/${newname}_htlv1.bam"
+    samtools index "${outputdir}/virus/${newname}_htlv1_sorted.bam"
+    
     # Picard to mark duplicates
-    picard MarkDuplicates \
-    -I ${proj_dir}/htlv1/${sample_ID}_htlv1_final.sorted.bam \
-    -O ${proj_dir}/htlv1/${sample_ID}_htlv1_marked.bam \
-    -M ${proj_dir}/htlv1/${sample_ID}_htlv1_dup_metrics.txt \
+    ###$$$ Check after how to call this issue with picard
+    java -jar /home/labatl/devapps/picard.jar MarkDuplicates \
+    -I "${outputdir}/virus/${newname}_htlv1_sorted.bam" \
+    -O "${outputdir}/virus/${newname}_htlv1_marked.bam" \
+    -M "${outputdir}/reports/${newname}_htlv1_dup_metrics.txt" \
     -CREATE_INDEX true \
     -VALIDATION_STRINGENCY SILENT \
     -REMOVE_DUPLICATES true
+
+    # Clean up intermediate files
+    rm -f "${outputdir}/virus/${newname}_unmapped.bam" \
+          "${outputdir}/virus/${newname}_viral_1.fq.gz" \
+          "${outputdir}/virus/${newname}_viral_2.fq.gz" \
+          "${outputdir}/virus/${newname}_htlv1.bam" \
+          "${outputdir}/virus/${newname}_htlv1_sorted.bam"
+
+    # Generate coverage and statistics
+    echo "Generating statistics..."
+
+    samtools flagstat "${outputdir}/virus/${newname}_htlv1_marked.bam" > \
+        "${outputdir}/reports/${newname}_htlv1_stats.txt"
+    samtools coverage "${outputdir}/virus/${newname}_htlv1_marked.bam" > \
+        "${outputdir}/reports/${newname}_htlv1_coverage.txt"
+    echo "✅ Statistics generated for HTLV-1 reads: ${outputdir}/reports/${newname}_htlv1_stats.txt"
+
+    ######################################################
+    # Run Mutect2 with panel of normals
+    echo "Running Mutect2 for ${newname} with panel of normals..."
+    #gatk Mutect2 \
+    #    -R "${ref_genome}" \
+    #    -I "${outputdir}/human/${newname}_final_dedup.bam" \
+    #    --panel-of-normals "${pon}" \
+    #    --germline-resource "${germline_resource}" \
+    #    --f1r2-tar-gz "${outputdir}/variants/${newname}_f1r2.tar.gz" \
+    #    -O "${outputdir}/variants/${newname}_somatic_unfiltered.vcf.gz"
     
-    rm -rf ${proj_dir}/htlv1/${sample_ID}_htlv1_final.sorted.bam
-
-
-done < "${maindir}/Peru_IRID/Peru_IRID_list.txt"
-
+    # Learn read orientation model
+    #echo "Learning read orientation model for ${newname}..."
+    #gatk LearnReadOrientationModel \
+    #    -I "${outputdir}/variants/${newname}_f1r2.tar.gz" \
+    #    -O "${outputdir}/variants/${newname}_read_orientation_model.tar.gz"
+    
+    # Filter Mutect2 calls
+    #echo "Filtering Mutect2 variants for ${newname}..."
+    #gatk FilterMutectCalls \
+    #    -R "${ref_genome}" \
+    #    -V "${outputdir}/variants/${newname}_somatic_unfiltered.vcf.gz" \
+    #    --ob-priors "${outputdir}/variants/${newname}_read_orientation_model.tar.gz" \
+    #    -O "${outputdir}/variants/${newname}_somatic_filtered.vcf.gz"
+    
+    # Annotate variants with Funcotator (optional)
+    # If you have Funcotator data sources, uncomment and update the path
+    # echo "Annotating variants with Funcotator..."
+    # gatk Funcotator \
+    #     --variant "${outputdir}/variants/${newname}_somatic_filtered.vcf.gz" \
+    #     --reference "${ref_genome}" \
+    #     --output "${outputdir}/variants/${newname}_annotated.vcf.gz" \
+    #     --output-file-format VCF \
+    #     --data-sources-path /path/to/funcotator_dataSources \
+    #     --ref-version hg38
+    
+    # Generate variant statistics
+    #echo "Generating variant statistics..."
+    #bcftools stats "${outputdir}/variants/${newname}_somatic_filtered.vcf.gz" > \
+        "${outputdir}/reports/${newname}_variant_stats.txt"
+    
+    #echo "✅ Mutect2 variant calling completed for ${newname}"
+     ###############################################
+    # MUTECT2 TUMOR-ONLY VARIANT CALLING
+    ###############################################
+    
+    # Create directory for variant results
+    mkdir -p "${outputdir}/variants"
+    
+    # Define resource files - update these paths to your actual files
+    pon="/path/to/somatic-hg38/1000g_pon.hg38.vcf.gz"
+    germline_resource="/path/to/somatic-hg38/af-only-gnomad.hg38.vcf.gz"
+    
+    echo "======== RUNNING MUTECT2 IN TUMOR-ONLY MODE ========"
+    echo "Running Mutect2 for ${newname} with Panel of Normals..."
+    
+    gatk Mutect2 \
+        -R "${ref_genome}" \
+        -I "${outputdir}/human/${newname}_final_dedup.bam" \
+        -tumor "${newname}" \
+        --panel-of-normals "${pon}" \
+        --germline-resource "${germline_resource}" \
+        --f1r2-tar-gz "${outputdir}/variants/${newname}_f1r2.tar.gz" \
+        -O "${outputdir}/variants/${newname}_somatic_unfiltered.vcf.gz" \
+        --max-population-af 0.01 \
+        --genotype-germline-sites true \
+        --genotype-pon-sites true
+    
+    # Learn read orientation model (for artifact filtering)
+    echo "Learning read orientation model for ${newname}..."
+    gatk LearnReadOrientationModel \
+        -I "${outputdir}/variants/${newname}_f1r2.tar.gz" \
+        -O "${outputdir}/variants/${newname}_read_orientation_model.tar.gz"
+    
+    # Calculate contamination (important for tumor-only mode)
+    echo "Calculating contamination for ${newname}..."
+    gatk GetPileupSummaries \
+        -I "${outputdir}/human/${newname}_final_dedup.bam" \
+        -V "${germline_resource}" \
+        -L "${germline_resource}" \
+        -O "${outputdir}/variants/${newname}_pileups.table"
+    
+    gatk CalculateContamination \
+        -I "${outputdir}/variants/${newname}_pileups.table" \
+        -O "${outputdir}/variants/${newname}_contamination.table"
+    
+    # Filter Mutect2 calls
+    echo "Filtering Mutect2 variants for ${newname}..."
+    gatk FilterMutectCalls \
+        -R "${ref_genome}" \
+        -V "${outputdir}/variants/${newname}_somatic_unfiltered.vcf.gz" \
+        --ob-priors "${outputdir}/variants/${newname}_read_orientation_model.tar.gz" \
+        --contamination-table "${outputdir}/variants/${newname}_contamination.table" \
+        -O "${outputdir}/variants/${newname}_somatic_filtered.vcf.gz"
+    
+    # Create variants directory for statistics
+    mkdir -p "${outputdir}/reports/variants"
+    
+    # Generate variant statistics
+    echo "Generating variant statistics..."
+    bcftools stats "${outputdir}/variants/${newname}_somatic_filtered.vcf.gz" > \
+        "${outputdir}/reports/${newname}_variant_stats.txt"
+    
+    echo "✅ Mutect2 tumor-only variant calling completed for ${newname}"
+    
+    ###############################################
+done < "${project_list}"
 
 
 # FIX MULTIQC:
 echo "📊 Running MultiQC"
-multiqc "${outputdir}/Peru_IRID/fastp" -o "${outputdir}/Peru_IRID/reports" -n "multiqc_report_postqc"
-echo "✅ MultiQC report: ${outputdir}/Peru_IRID/multiqc_report_postqc.html"
+multiqc "${outputdir}/fastp" -o "${outputdir}/reports" -n "multiqc_report_postqc"
+echo "✅ MultiQC report: ${outputdir}/multiqc_report_postqc.html"
