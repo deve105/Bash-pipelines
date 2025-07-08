@@ -10,10 +10,15 @@ echo "Version V1 2025-06-3"
 ## Input
 inputdir="/media/labatl/HD-PCGU3-A/test"
 outputdir="/home/labatl/devprojects/test"
-ref_genome="/home/labatl/devapps/2407_references/1000g38/genome.fa"
+ref_genome="/home/labatl/devapps/2407_references/2405project_hg38/2405_hg38htlv.fa"
 htlv1_ref="/home/labatl/devapps/2407_references/htlv1/J20209_1.fasta"
+pon="/home/labatl/devapps/2407_references/1000g_pon.hg38.vcf.gz"
+germline_resource="/home/labatl/devapps/2407_references/af-only-gnomad.hg38.vcf.gz"
+funcotator_data="/home/labatl/devapps/2407_references/funcotator_dataSources.v1.7.20200521g"
+
 nproc=32
-picard="/home/labatl/devapps/picard.jar"
+picard_cmd="/home/labatl/devapps/picard.jar"
+gatk_cmd="/home/labatl/devapps/gatk/gatk"
 java_mem="-Xmx32G -XX:MaxDirectMemorySize=32G"
 
 ####Directories checks#########################
@@ -47,7 +52,7 @@ else
 fi
 
 ## Folder structure inside outputdir
-mkdir -p "${outputdir}/"{temp,fastp,bam,reports,virus,human}
+mkdir -p "${outputdir}/"{temp,fastp,bam,reports,virus,human,virus_variants,human_variants}
 
 ####Software checks############################
 ###############################################
@@ -160,30 +165,40 @@ while IFS= read -r sra; do
     ###############################################
     
     echo "======== EXTRACTING HUMAN READS OF INTEREST ========"
+
     # Extract well-mapped human reads (properly paired, MAPQ>=30)
     echo "Extracting high-quality human reads..."
-    samtools view -@ ${nproc} -b -f 2 -q 30 \
-        "${bamq}_sorted.bam" > \
-        "${bamq}_hg38q30_sorted.bam"
-    # Sort and index the high-quality BAM
-    samtools sort -@ ${nproc} -o "${outputdir}/human/${newname}_final.bam" \
-        "${bamq}_hg38q30_sorted.bam"
-    samtools index "${outputdir}/human/${newname}_final.bam"
+    # Filter reads mapped only to human chromosomes
+    # Using regions directly in samtools (no temp file needed)
 
+    # Create a temporary BED file with human chromosomes
+    samtools idxstats "${bamq}_sorted.bam" | grep -v "J02029.1" | awk '{print $1"\t0\t"$2}' > "${outputdir}/human/${newname}_human_regions.bed"
+
+    # Use the BED file to extract human reads
+    samtools view -@ ${nproc} -b -f 2 -q 30 -M -L "${outputdir}/human/${newname}_human_regions.bed" \
+    "${bamq}_sorted.bam" > "${outputdir}/human/${newname}_human.bam"
+
+    # Sort and index
+    samtools sort -@ ${nproc} -o "${outputdir}/human/${newname}_final.bam" "${outputdir}/human/${newname}_human.bam"
+    samtools index "${outputdir}/human/${newname}_final.bam"
+    echo "✅ Human reads extracted and sorted: ${outputdir}/human/${newname}_final.bam"
+    
     # Mark duplicates
     echo "Marking duplicates in human reads..."
-    java -jar /home/labatl/devapps/picard.jar MarkDuplicates \
+    java ${java_mem} -jar ${picard_cmd} MarkDuplicates \
         -I "${outputdir}/human/${newname}_final.bam" \
         -O "${outputdir}/human/${newname}_final_dedup.bam" \
         -M "${outputdir}/human/${newname}_dedup_metrics.txt" \
         -CREATE_INDEX true \
-        -VALIDATION_STRINGENCY SILENT \
-        -REMOVE_DUPLICATES true
+        -REMOVE_DUPLICATES true \
+        -VALIDATION_STRINGENCY LENIENT
+
     
     echo "✅ Human reads processed and duplicates marked: ${outputdir}/human/${newname}_final_dedup.bam"
     rm -f "${outputdir}/human/${newname}_final.bam" \
           "${outputdir}/human/${newname}_final.bam.bai" \
-          "${bamq}_hg38q30_sorted.bam"
+          "${outputdir}/human/${newname}_human.bam" \
+          "${outputdir}/human/${newname}_human_regions.bed"
     
     echo "✅ Cleaned up intermediate human BAM files"
 
@@ -195,168 +210,123 @@ while IFS= read -r sra; do
         "${outputdir}/reports/${newname}.human.coverage.txt"
     echo "✅ Statistics generated for human reads: ${outputdir}/reports/${newname}.human.stats.txt"
 
-    ###############################################
-    ###############################################
-    ###############################################
-    # Extract reads that might contain HTLV-1
-    echo "Extracting potential viral reads..."
-    # Get unmapped and partially mapped reads for HTLV-1 analysis
-    samtools view -@ ${nproc} -b -f 4 "${bamq}_sorted.bam" > \
-        "${outputdir}/virus/${newname}_unmapped.bam"
-    
-    # Convert to FASTQ for viral mapping
-    samtools fastq -@ ${nproc} \
-        "${outputdir}/virus/${newname}_unmapped.bam" \
-        -1 "${outputdir}/virus/${newname}_viral_1.fq.gz" \
-        -2 "${outputdir}/virus/${newname}_viral_2.fq.gz" \
-        -0 /dev/null -s "${outputdir}/virus/${newname}_viral_s.fq.gz"
-    
-    # Map to HTLV-1 reference
-    echo "Mapping potential viral reads to HTLV-1..."
-    bwa-mem2 mem -t ${nproc} \
-        -R "@RG\tID:${newname}\tSM:${newname}\tPL:ILLUMINA" \
-        "${htlv1_ref}" \
-        "${outputdir}/virus/${newname}_viral_1.fq.gz" \
-        "${outputdir}/virus/${newname}_viral_2.fq.gz"| \
-    samtools view -@ ${nproc} -bS - > "${outputdir}/virus/${newname}_htlv1.bam"
-    
-    # Sort, index and filter viral BAM
-    samtools sort -@ ${nproc} -o "${outputdir}/virus/${newname}_htlv1_sorted.bam" \
-        "${outputdir}/virus/${newname}_htlv1.bam"
-    samtools index "${outputdir}/virus/${newname}_htlv1_sorted.bam"
-    
-    # Picard to mark duplicates
-    ###$$$ Check after how to call this issue with picard
-    java -jar /home/labatl/devapps/picard.jar MarkDuplicates \
-    -I "${outputdir}/virus/${newname}_htlv1_sorted.bam" \
-    -O "${outputdir}/virus/${newname}_htlv1_marked.bam" \
-    -M "${outputdir}/reports/${newname}_htlv1_dup_metrics.txt" \
-    -CREATE_INDEX true \
-    -VALIDATION_STRINGENCY SILENT \
-    -REMOVE_DUPLICATES true
+    #######################################
 
-    # Clean up intermediate files
-    rm -f "${outputdir}/virus/${newname}_unmapped.bam" \
-          "${outputdir}/virus/${newname}_viral_1.fq.gz" \
-          "${outputdir}/virus/${newname}_viral_2.fq.gz" \
-          "${outputdir}/virus/${newname}_htlv1.bam" \
-          "${outputdir}/virus/${newname}_htlv1_sorted.bam"
-
-    # Generate coverage and statistics
-    echo "Generating statistics..."
-
-    samtools flagstat "${outputdir}/virus/${newname}_htlv1_marked.bam" > \
-        "${outputdir}/reports/${newname}_htlv1_stats.txt"
-    samtools coverage "${outputdir}/virus/${newname}_htlv1_marked.bam" > \
-        "${outputdir}/reports/${newname}_htlv1_coverage.txt"
-    echo "✅ Statistics generated for HTLV-1 reads: ${outputdir}/reports/${newname}_htlv1_stats.txt"
-
-    ######################################################
     # Run Mutect2 with panel of normals
     echo "Running Mutect2 for ${newname} with panel of normals..."
-    #gatk Mutect2 \
-    #    -R "${ref_genome}" \
-    #    -I "${outputdir}/human/${newname}_final_dedup.bam" \
-    #    --panel-of-normals "${pon}" \
-    #    --germline-resource "${germline_resource}" \
-    #    --f1r2-tar-gz "${outputdir}/variants/${newname}_f1r2.tar.gz" \
-    #    -O "${outputdir}/variants/${newname}_somatic_unfiltered.vcf.gz"
-    
-    # Learn read orientation model
-    #echo "Learning read orientation model for ${newname}..."
-    #gatk LearnReadOrientationModel \
-    #    -I "${outputdir}/variants/${newname}_f1r2.tar.gz" \
-    #    -O "${outputdir}/variants/${newname}_read_orientation_model.tar.gz"
-    
-    # Filter Mutect2 calls
-    #echo "Filtering Mutect2 variants for ${newname}..."
-    #gatk FilterMutectCalls \
-    #    -R "${ref_genome}" \
-    #    -V "${outputdir}/variants/${newname}_somatic_unfiltered.vcf.gz" \
-    #    --ob-priors "${outputdir}/variants/${newname}_read_orientation_model.tar.gz" \
-    #    -O "${outputdir}/variants/${newname}_somatic_filtered.vcf.gz"
-    
-    # Annotate variants with Funcotator (optional)
-    # If you have Funcotator data sources, uncomment and update the path
-    # echo "Annotating variants with Funcotator..."
-    # gatk Funcotator \
-    #     --variant "${outputdir}/variants/${newname}_somatic_filtered.vcf.gz" \
-    #     --reference "${ref_genome}" \
-    #     --output "${outputdir}/variants/${newname}_annotated.vcf.gz" \
-    #     --output-file-format VCF \
-    #     --data-sources-path /path/to/funcotator_dataSources \
-    #     --ref-version hg38
-    
-    # Generate variant statistics
-    #echo "Generating variant statistics..."
-    #bcftools stats "${outputdir}/variants/${newname}_somatic_filtered.vcf.gz" > \
-        "${outputdir}/reports/${newname}_variant_stats.txt"
-    
-    #echo "✅ Mutect2 variant calling completed for ${newname}"
-     ###############################################
-    # MUTECT2 TUMOR-ONLY VARIANT CALLING
-    ###############################################
-    
-    # Create directory for variant results
-    mkdir -p "${outputdir}/variants"
-    
-    # Define resource files - update these paths to your actual files
-    pon="/path/to/somatic-hg38/1000g_pon.hg38.vcf.gz"
-    germline_resource="/path/to/somatic-hg38/af-only-gnomad.hg38.vcf.gz"
-    
-    echo "======== RUNNING MUTECT2 IN TUMOR-ONLY MODE ========"
-    echo "Running Mutect2 for ${newname} with Panel of Normals..."
-    
-    gatk Mutect2 \
+    gatk --java-options "${java_mem}" Mutect2 \
         -R "${ref_genome}" \
         -I "${outputdir}/human/${newname}_final_dedup.bam" \
-        -tumor "${newname}" \
         --panel-of-normals "${pon}" \
         --germline-resource "${germline_resource}" \
-        --f1r2-tar-gz "${outputdir}/variants/${newname}_f1r2.tar.gz" \
-        -O "${outputdir}/variants/${newname}_somatic_unfiltered.vcf.gz" \
+        --f1r2-tar-gz "${outputdir}/human_variants/${newname}_f1r2.tar.gz" \
+        -O "${outputdir}/human_variants/${newname}_somatic_unfiltered.vcf.gz" \
         --max-population-af 0.01 \
         --genotype-germline-sites true \
         --genotype-pon-sites true
     
-    # Learn read orientation model (for artifact filtering)
+    # Learn read orientation model
     echo "Learning read orientation model for ${newname}..."
-    gatk LearnReadOrientationModel \
-        -I "${outputdir}/variants/${newname}_f1r2.tar.gz" \
-        -O "${outputdir}/variants/${newname}_read_orientation_model.tar.gz"
-    
-    # Calculate contamination (important for tumor-only mode)
-    echo "Calculating contamination for ${newname}..."
-    gatk GetPileupSummaries \
-        -I "${outputdir}/human/${newname}_final_dedup.bam" \
-        -V "${germline_resource}" \
-        -L "${germline_resource}" \
-        -O "${outputdir}/variants/${newname}_pileups.table"
-    
-    gatk CalculateContamination \
-        -I "${outputdir}/variants/${newname}_pileups.table" \
-        -O "${outputdir}/variants/${newname}_contamination.table"
+    gatk --java-options "${java_mem}" LearnReadOrientationModel \
+        -I "${outputdir}/human_variants/${newname}_f1r2.tar.gz" \
+        -O "${outputdir}/human_variants/${newname}_read_orientation_model.tar.gz"
     
     # Filter Mutect2 calls
     echo "Filtering Mutect2 variants for ${newname}..."
-    gatk FilterMutectCalls \
+    gatk --java-options "${java_mem}" FilterMutectCalls \
         -R "${ref_genome}" \
-        -V "${outputdir}/variants/${newname}_somatic_unfiltered.vcf.gz" \
-        --ob-priors "${outputdir}/variants/${newname}_read_orientation_model.tar.gz" \
-        --contamination-table "${outputdir}/variants/${newname}_contamination.table" \
-        -O "${outputdir}/variants/${newname}_somatic_filtered.vcf.gz"
-    
-    # Create variants directory for statistics
-    mkdir -p "${outputdir}/reports/variants"
-    
+        -V "${outputdir}/human_variants/${newname}_somatic_unfiltered.vcf.gz" \
+        --ob-priors "${outputdir}/human_variants/${newname}_read_orientation_model.tar.gz" \
+        -O "${outputdir}/human_variants/${newname}_somatic_filtered.vcf.gz"
+
     # Generate variant statistics
     echo "Generating variant statistics..."
-    bcftools stats "${outputdir}/variants/${newname}_somatic_filtered.vcf.gz" > \
+    bcftools stats "${outputdir}/human_variants/${newname}_somatic_filtered.vcf.gz" > \
         "${outputdir}/reports/${newname}_variant_stats.txt"
     
     echo "✅ Mutect2 tumor-only variant calling completed for ${newname}"
     
+    # Annotate variants with Funcotator (optional)
+    echo "Annotating variants with Funcotator..."
+    gatk --java-options "${java_mem}" Funcotator \
+         --variant "${outputdir}/human_variants/${newname}_somatic_filtered.vcf.gz" \
+         --reference "${ref_genome}" \
+         --output "${outputdir}/human_variants/${newname}_annotated.vcf.gz" \
+         --output-file-format VCF \
+         --data-sources-path ${funcotator_data} \
+         --ref-version hg38
+    
+    # Generate variant statistics
+    echo "Generating variant statistics..."
+    bcftools stats "${outputdir}/human_variants/${newname}_somatic_filtered.vcf.gz" > \
+        "${outputdir}/reports/${newname}_variant_stats.txt"
+    
+    echo "✅ Mutect2 variant calling completed for ${newname}"
+
     ###############################################
+    ###############################################
+    ###############################################
+    ###############################################
+
+    # Extract reads directly mapped to HTLV-1
+    echo "Extracting reads directly mapped to HTLV-1..."
+    samtools view -@ ${nproc} -b "${bamq}_sorted.bam" "J02029.1" > \
+    "${outputdir}/virus/${newname}_direct_viral.bam"
+
+    # Sort and index
+    samtools sort -@ ${nproc} -o "${outputdir}/virus/${newname}_direct_sorted.bam" \
+    "${outputdir}/virus/direct/${newname}_direct_viral.bam"
+    samtools index "${outputdir}/virus/${newname}_direct_sorted.bam"
+
+    # Compare coverage statistics
+    samtools coverage "${outputdir}/virus/direct/${newname}_direct_sorted.bam" > \
+    "${outputdir}/reports/${newname}_direct_viral_coverage.txt"
+
+
+   
+    # Picard to mark duplicates
+    ###$$$ Check after how to call this issue with picard
+    echo "Marking duplicates in human reads..."
+    java ${java_mem} -jar ${picard_cmd} MarkDuplicates  \
+        -I "${outputdir}/virus/${newname}_direct_sorted.bam" \
+        -O "${outputdir}/virus/${newname}_dedup.bam" \
+        -M "${outputdir}/virus/${newname}_dedup_metrics.txt" \
+        -CREATE_INDEX true \
+        -REMOVE_DUPLICATES true \
+        -VALIDATION_STRINGENCY LENIENT
+
+  
+    ######################################################
+    # HTLV-1 VARIANT CALLING
+    ######################################################
+    echo "======== CALLING MUTATIONS IN HTLV-1 GENOME ========"
+
+    # Call variants using GATK HaplotypeCaller tuned for stable virus
+    echo "Calling HTLV-1 variants with GATK for ${newname}..."
+    gatk --java-options "${java_mem}" HaplotypeCaller \
+    -R "${htlv1_ref}" \
+    -I "${outputdir}/virus/${newname}_dedup.bam" \
+    -O "${outputdir}/virus_variants/${newname}_htlv1_variants_gatk.vcf.gz" \
+    --min-pruning 1 \
+    --min-dangling-branch-length 1 \
+    --standard-min-confidence-threshold-for-calling 20.0 \
+    --sample-ploidy 10 \
+    --min-base-quality-score 25 \
+    --annotation StrandBiasBySample \
+    --pcr-indel-model NONE
+
+    # Generate variant statistics
+    echo "Generating HTLV-1 variant statistics..."
+    bcftools stats "${outputdir}/virus_variants/${newname}_htlv1_variants_gatk.vcf.gz" > \
+    "${outputdir}/reports/${newname}_htlv1_variants_stats.txt"
+
+    echo "✅ HTLV-1 variant calling completed for ${newname}"
+    
+    # Clean up intermediate files
+    rm -f "${outputdir}/virus/${newname}_direct_viral.bam" \
+          "${outputdir}/virus/${newname}_direct_sorted.bam" 
+
+    
 done < "${project_list}"
 
 
