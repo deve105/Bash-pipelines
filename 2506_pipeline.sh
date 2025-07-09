@@ -15,11 +15,13 @@ htlv1_ref="/home/labatl/devapps/2407_references/htlv1/J20209_1.fasta"
 pon="/home/labatl/devapps/2407_references/1000g_pon.hg38.vcf.gz"
 germline_resource="/home/labatl/devapps/2407_references/af-only-gnomad.hg38.vcf.gz"
 funcotator_data="/home/labatl/devapps/2407_references/funcotator_dataSources.v1.7.20200521g"
+known_sites="/home/labatl/devapps/2407_references/Homo_sapiens_assembly38.dbsnp138.vcf"
+
 
 nproc=32
 picard_cmd="/home/labatl/devapps/picard.jar"
 gatk_cmd="/home/labatl/devapps/gatk/gatk"
-java_mem="-Xmx8G -XX:MaxDirectMemorySize=16G"
+java_mem="-Xmx24G -XX:MaxDirectMemorySize=32G"
 
 ####Directories checks#########################
 ###############################################
@@ -74,7 +76,8 @@ java --version
 sudo update-alternatives --config java
 wget https://storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf
 wget https://storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf.idx
-
+# ref dict - .dict file before running haplotype caller
+gatk CreateSequenceDictionary R=~/Desktop/demo/supporting_files/hg38/hg38.fa O=~/Desktop/demo/supporting_files/hg38/hg38.dict
 fi
 
 ####Initial List###############################
@@ -126,137 +129,172 @@ while IFS= read -r sra; do
     #if [" ${outputdir}/temp/${newname}_postqc_1.fq.gz" && "${outputdir}/temp/${newname}_postqc_2.fq.gz" -f ]; then
     if [ -f "${outputdir}/temp/${newname}_postqc_1.fq.gz" ] && [ -f "${outputdir}/temp/${newname}_postqc_2.fq.gz" ]; then
         echo "✅ Post-QC files already exist for ${newname}. Skipping fastp step."
-        continue
+    else
+        echo "Quality control for ${newname}"
+        fastp -i "${outputdir}/temp/${newname}_1.fq.gz" \
+            -I "${outputdir}/temp/${newname}_2.fq.gz" \
+            -o "${outputdir}/temp/${newname}_postqc_1.fq.gz" \
+            -O "${outputdir}/temp/${newname}_postqc_2.fq.gz" \
+            -j "${outputdir}/fastp/${newname}_fastp.json" \
+            -h "${outputdir}/fastp/${newname}_fastp.html" \
+            --qualified_quality_phred 30 \
+            --unqualified_percent_limit 40 \
+            --n_base_limit 5 \
+            --length_required 50 \
+            --cut_right \
+            --correction \
+            --cut_mean_quality 20 \
+            --cut_window_size 4 \
+            --detect_adapter_for_pe \
+            --dont_eval_duplication \
+            --thread 16
+        echo "✅ fastp quality control completed for ${newname}"
     fi
-    echo "Quality control for ${newname}"
-    fastp -i "${outputdir}/temp/${newname}_1.fq.gz" \
-        -I "${outputdir}/temp/${newname}_2.fq.gz" \
-        -o "${outputdir}/temp/${newname}_postqc_1.fq.gz" \
-        -O "${outputdir}/temp/${newname}_postqc_2.fq.gz" \
-        -j "${outputdir}/fastp/${newname}_fastp.json" \
-        -h "${outputdir}/fastp/${newname}_fastp.html" \
-        --qualified_quality_phred 30 \
-        --unqualified_percent_limit 40 \
-        --n_base_limit 5 \
-        --length_required 50 \
-        --cut_right \
-        --correction \
-        --cut_mean_quality 20 \
-        --cut_window_size 4 \
-        --detect_adapter_for_pe \
-        --dont_eval_duplication \
-        --thread 16
-
-    echo "✅ Quality control completed for ${newname}"
-	
-    
-    echo "✅ ${newname}_1.fq.gz and ${newname}_2.fq.gz removed from temp folder"
-
+   
     fastq1="${outputdir}/temp/${newname}_postqc_1.fq.gz"
     fastq2="${outputdir}/temp/${newname}_postqc_2.fq.gz"
     bamq="${outputdir}/bam/${newname}"
     
     #MAPPING
-    echo "BWA-MEM2 mapping for ${newname}"
-    bwa-mem2 mem \
-        -t ${nproc} \
-        -M \
-        -R "@RG\tID:${newname}\tSM:${newname}\tPL:ILLUMINA" \
-        "${ref_genome}" \
-        "${fastq1}" \
-        "${fastq2}" | \
-    samtools sort -@ ${nproc} -o "${bamq}_sorted.bam" 
-    echo "✅ Sorted BAM file created: ${bamq}_sorted.bam"
+    if [ -f "${bamq}_sorted.bam" ]; then
+        echo "✅ ${bamq} found. Skipping BWA-MEM2 mapping."
+    else
+        echo "BWA-MEM2 mapping for ${newname}"
+        bwa-mem2 mem \
+            -t ${nproc} \
+            -M \
+            -R "@RG\tID:${newname}\tSM:${newname}\tPL:ILLUMINA" \
+            "${ref_genome}" \
+            "${fastq1}" \
+            "${fastq2}" | \
+            samtools view -@ ${nproc} -bS -o "${bamq}.bam" 
+        samtools sort -@ ${nproc} -o "${bamq}_sorted.bam" "${bamq}.bam" 
+        echo "✅ Sorted BAM file created: ${bamq}_sorted.bam"
 
-    #INDEXING
-    echo "Indexing BAM file"
-    samtools index "${bamq}_sorted.bam"
-    echo "✅ Indexed BAM file created: ${bamq}_sorted.bam.bai"
+        #INDEXING
+        echo "Indexing BAM file"
+        samtools index "${bamq}_sorted.bam"
+        echo "✅ Indexed BAM file created: ${bamq}_sorted.bam.bai"
+    fi
 
     
-
-
     ###############################################
     ###############################################
     ###############################################
-    
     echo "======== EXTRACTING HUMAN READS OF INTEREST ========"
+    if [ -f "${outputdir}/human/${newname}_human.bam" ] && [ -f "${outputdir}/human/${newname}_targeted.bed" ]; then
+        echo "✅ ${bamq} found. Skipping human extraction."
+    else
+        # Extract well-mapped human reads (properly paired, MAPQ>=30)
+        echo "Extracting high-quality human reads..."
+        # Create a temporary BED file with human chromosomes
+        samtools idxstats "${bamq}_sorted.bam" | grep -v "J02029.1" | awk '{print $1"\t0\t"$2}' > "${outputdir}/human/${newname}_human_regions.bed"
 
-    # Extract well-mapped human reads (properly paired, MAPQ>=30)
-    echo "Extracting high-quality human reads..."
-    # Create a temporary BED file with human chromosomes
-    samtools idxstats "${bamq}_sorted.bam" | grep -v "J02029.1" | awk '{print $1"\t0\t"$2}' > "${outputdir}/human/${newname}_human_regions.bed"
-
-    # Use the BED file to extract human reads
-    samtools view -@ ${nproc} -b -f 2 -q 30 -M -L "${outputdir}/human/${newname}_human_regions.bed" \
-    "${bamq}_sorted.bam" > "${outputdir}/human/${newname}_human.bam"
-
-    # Sort and index
-    #samtools sort -@ ${nproc} -o "${outputdir}/human/${newname}_final.bam" "${outputdir}/human/${newname}_human.bam"
-    #samtools index "${outputdir}/human/${newname}_final.bam"
-    #echo "✅ Human reads extracted and sorted: ${outputdir}/human/${newname}_final.bam"
+        # Use the BED file to extract human reads
+        samtools view -@ ${nproc} -b -f 2 -q 30 -M -L "${outputdir}/human/${newname}_human_regions.bed" \
+        "${bamq}_sorted.bam"  | samtools sort -@ ${nproc} -o "${outputdir}/human/${newname}_human.bam"
+        # Sort and index
+        #samtools sort -@ ${nproc} -o "${outputdir}/human/${newname}_final.bam" "${outputdir}/human/${newname}_human.bam"
+        samtools index "${outputdir}/human/${newname}_human.bam"
+        #echo "✅ Human reads extracted and sorted: ${outputdir}/human/${newname}_final.bam"
     
-    ## Creating BED file for coverage regions > 30
-    samtools depth -a "${outputdir}/human/${newname}_human.bam" | \
-    awk '$3 >= 30 {print $1"\t"$2-1"\t"$2"\t"$3}' | \
-    bedtools merge -d 10 -c 4 -o mean > "${outputdir}/human/${newname}_targeted.bed"
-    echo "✅ High coverage regions BED file created: ${outputdir}/human/${newname}_targeted.bed"
+        ## Creating BED file for coverage regions > 30
+        samtools depth -a "${outputdir}/human/${newname}_human.bam" | \
+        awk '$3 >= 30 {print $1"\t"$2-1"\t"$2"\t"$3}' | \
+        bedtools merge -d 10 -c 4 -o mean > "${outputdir}/human/${newname}_targeted.bed"
+        echo "✅ High coverage regions BED file created: ${outputdir}/human/${newname}_targeted.bed"
 
+    fi
+
+    echo "======== EXTRACTING HUMAN READS OF INTEREST ========"
+    if [ -f "${outputdir}/human/${newname}_final_dedup.bam" ]; then
+        echo "✅ Mark duplicates donde. Skipping this step."
+    else
 
     # Mark duplicates
     echo "Marking duplicates in human reads..."
-    gatk --java-options "${java_mem}" MarkDuplicatesSpark \
+    gatk --java-options "${java_mem}" MarkDuplicates \
     -I "${outputdir}/human/${newname}_human.bam" \
     -O "${outputdir}/human/${newname}_final_dedup.bam" \
     -M "${outputdir}/reports/${newname}_dedup_metrics.txt" \
-    -L "${outputdir}/human/${newname}_targeted.bed" \
-    --create-output-bam-index true \
-    --remove-sequencing-duplicates true \
-    --spark-master local[4] \
-    --tmp-dir "${outputdir}/temp/"
-    
+    --CREATE_INDEX true \
+    --REMOVE_DUPLICATES true \
+    --TMP_DIR "${outputdir}/temp/" \
+    --VALIDATION_STRINGENCY LENIENT
 
-    #java ${java_mem} -jar ${picard_cmd} MarkDuplicates \
-    #    -I "${outputdir}/human/${newname}_final.bam" \
-    #    -O "${outputdir}/human/${newname}_final_dedup.bam" \
-    #    -M "${outputdir}/human/${newname}_dedup_metrics.txt" \
-    #    -CREATE_INDEX true \
-    #    -REMOVE_DUPLICATES true \
-    #    -VALIDATION_STRINGENCY LENIENT
+    fi
 
-    
-    echo "✅ Human reads processed and duplicates marked: ${outputdir}/human/${newname}_final_dedup.bam"
-    
+    ################### This not
 
+    if false; then
+    gatk MarkDuplicatesSpark \
+        -I "${outputdir}/human/${newname}_human.bam" \
+        -O "${outputdir}/human/${newname}_final_dedup.bam" \
+        -L "${outputdir}/human/${newname}_targeted.bed" \
+        -M "${outputdir}/reports/${newname}_dedup_metrics.txt" \
+        --CREATE_INDEX true \
+        --tmp-dir "${outputdir}/temp/" 
+    gatk --java-options "${java_mem}" MarkDuplicates \
+    -I "${outputdir}/human/${newname}_human.bam" \
+    -O "${outputdir}/human/${newname}_final_dedup.bam" \
+    -M "${outputdir}/reports/${newname}_dedup_metrics.txt" \
+    --CREATE_INDEX true \
+    --REMOVE_DUPLICATES true \
+    --TMP_DIR "${outputdir}/temp/" \
+    --VALIDATION_STRINGENCY LENIENT
+    fi
+
+    echo "✅ Human reads processed and duplicates marked: ${outputdir}/human/${newname}_final_dedup.bam"  
     # Remove intermediate files
-    echo "Cleaning up intermediate files..."
-    
-    rm -f "${outputdir}/human/${newname}_final.bam" \
-          "${outputdir}/human/${newname}_final.bam.bai" \
-          "${outputdir}/human/${newname}_human.bam" \
-          "${outputdir}/human/${newname}_human_regions.bed"
-    rm -f "${fastq1}" "${fastq2}"
-    rm -f "${outputdir}/temp/${newname}_1.fq.gz" \
-        "${outputdir}/temp/${newname}_2.fq.gz"
-    
-    echo "✅ Cleaned up intermediate human BAM files"
-
     # Generate coverage and statistics
-    echo "Generating statistics..."
-    samtools flagstat "${outputdir}/human/${newname}_final_dedup.bam"  > \
-        "${outputdir}/reports/${newname}.human.stats.txt"
-    samtools coverage "${outputdir}/human/${newname}_final_dedup.bam"  > \
-        "${outputdir}/reports/${newname}.human.coverage.txt"
-    echo "✅ Statistics generated for human reads: ${outputdir}/reports/${newname}.human.stats.txt"
+    #echo "Generating statistics..."
+    #samtools flagstat "${outputdir}/human/${newname}_final_dedup.bam"  > \
+    #    "${outputdir}/reports/${newname}.human.stats.txt"
+    #samtools coverage "${outputdir}/human/${newname}_final_dedup.bam"  > \
+    #    "${outputdir}/reports/${newname}.human.coverage.txt"
+    #echo "✅ Statistics generated for human reads: ${outputdir}/reports/${newname}.human.stats.txt"
 
     #######################################
+    ## Base Quality Recalibration (BQSR)
+    echo "======== RUNNING BASE QUALITY RECALIBRATION (BQSR) ========"
+    if [ -f "${outputdir}/human/${newname}_final_dedup_recal.bam"  ]; then
+        echo "✅ BASE QUALITY RECALIBRATION. Skipping this step."
+    else
+    gatk --java-options "${java_mem}" BaseRecalibrator \
+    -I "${outputdir}/human/${newname}_final_dedup.bam" \
+    -O "${outputdir}/human/${newname}_final_dedup.table" \
+    --known-sites "${known_sites}" \
+    -R "${ref_genome}" \
+    -L "${outputdir}/human/${newname}_targeted.bed" 
+
+    gatk --java-options "${java_mem}" ApplyBQSR \
+    -R "${ref_genome}" \
+    -I "${outputdir}/human/${newname}_final_dedup.bam" \
+    -O "${outputdir}/human/${newname}_final_dedup_recal.bam" \
+    --bqsr-recal-file "${outputdir}/human/${newname}_final_dedup.table" \
+    -L "${outputdir}/human/${newname}_targeted.bed"
+    fi
+    echo "✅ Base Quality Recalibration completed for ${newname}"
+
+    # Generate statistics after BQSR
+    echo "Generating statistics after BQSR..."
+
+    gatk --java-options "${java_mem}" CollectAlignmentSummaryMetrics \
+    -I "${outputdir}/human/${newname}_final_dedup_recal.bam" \
+    -O "${outputdir}/human/${newname}_final_dedup_recal_alignment_metrics.txt" 
+    gatk --java-options "${java_mem}" CollectInsertSizeMetrics \
+        -I "${outputdir}/human/${newname}_final_dedup_recal.bam" \
+        -O "${outputdir}/human/${newname}_insert_size_metrics.txt" \
+        --Histogram_FILE "${outputdir}/human/${newname}_insert_size_histogram.pdf"
+
 
     # Run Mutect2 with panel of normals
     echo "Running Mutect2 for ${newname} with panel of normals..."
     gatk --java-options "${java_mem}" Mutect2 \
         -R "${ref_genome}" \
-        -I "${outputdir}/human/${newname}_final_dedup.bam" \
+        -I "${outputdir}/human/${newname}_final_dedup_recal.bam" \
         --panel-of-normals "${pon}" \
+        -L "${outputdir}/human/${newname}_targeted.bed" \
         --germline-resource "${germline_resource}" \
         --f1r2-tar-gz "${outputdir}/human_variants/${newname}_f1r2.tar.gz" \
         -O "${outputdir}/human_variants/${newname}_somatic_unfiltered.vcf.gz" \
@@ -270,18 +308,29 @@ while IFS= read -r sra; do
         -I "${outputdir}/human_variants/${newname}_f1r2.tar.gz" \
         -O "${outputdir}/human_variants/${newname}_read_orientation_model.tar.gz"
     
+    gatk --java-options "${java_mem}" GetPileupSummaries \
+        -I "${outputdir}/human/${newname}_final_dedup_recal.bam" \
+        -V "${germline_resource}" \
+        -L "${outputdir}/human/${newname}_targeted.bed" \
+        -O "${outputdir}/human_variants/${newname}_pileups.table"
+    
+    gatk --java-options "${java_mem}" CalculateContamination \
+        -I "${outputdir}/human_variants/${newname}_pileups.table" \
+        -O "${outputdir}/human_variants/${newname}_contamination.table" \
+
     # Filter Mutect2 calls
     echo "Filtering Mutect2 variants for ${newname}..."
     gatk --java-options "${java_mem}" FilterMutectCalls \
         -R "${ref_genome}" \
         -V "${outputdir}/human_variants/${newname}_somatic_unfiltered.vcf.gz" \
         --ob-priors "${outputdir}/human_variants/${newname}_read_orientation_model.tar.gz" \
-        -O "${outputdir}/human_variants/${newname}_somatic_filtered.vcf.gz"
+        -O "${outputdir}/human_variants/${newname}_somatic_filtered.vcf.gz" \
+        --contamination-table "${outputdir}/human_variants/${newname}_contamination.table"
 
     # Generate variant statistics
-    echo "Generating variant statistics..."
-    bcftools stats "${outputdir}/human_variants/${newname}_somatic_filtered.vcf.gz" > \
-        "${outputdir}/reports/${newname}_variant_stats.txt"
+    #echo "Generating variant statistics..."
+    #bcftools stats "${outputdir}/human_variants/${newname}_somatic_filtered.vcf.gz" > \
+    #    "${outputdir}/reports/${newname}_variant_stats.txt"
     
     echo "✅ Mutect2 tumor-only variant calling completed for ${newname}"
     
@@ -294,10 +343,10 @@ while IFS= read -r sra; do
      --output-file-format VCF \
      --data-sources-path ${funcotator_data} \
      --ref-version hg38 \
-     --transcript-selection-mode BEST_EFFECT \
-     --exclude-field COSMIC_overlapping_mutations 
+     --transcript-selection-mode BEST_EFFECT 
     
-    
+    gatk VariantsToTable -V "${outputdir}/human_variants/${newname}_annotated.vcf.gz" -F CHROM -F POS -F ID -F REF -F ALT -F QUAL -F FILTER -F INFO -F FORMAT -O "${outputdir}/human_variants/${newname}_final.table"
+
     # Generate variant statistics
     echo "Generating variant statistics..."
     bcftools stats "${outputdir}/human_variants/${newname}_somatic_filtered.vcf.gz" > \
@@ -305,8 +354,15 @@ while IFS= read -r sra; do
     
     echo "✅ Mutect2 variant calling completed for ${newname}"
 
-    
+    echo "Cleaning up intermediate files..."
     rm "${outputdir}/human/${newname}_final_dedup.bam" "${outputdir}/human/${newname}_final_dedup.bai"  
+    rm -f "${outputdir}/human/${newname}_human.bam" \
+        "${outputdir}/human/${newname}_human.bam.bai" 
+    rm -f "${fastq1}" "${fastq2}"
+    rm -f "${outputdir}/temp/${newname}_1.fq.gz" \
+        "${outputdir}/temp/${newname}_2.fq.gz"
+    
+    echo "✅ Cleaned up intermediate human BAM files"
     ###############################################
     ###############################################
     ###############################################
@@ -323,7 +379,7 @@ while IFS= read -r sra; do
     samtools index "${outputdir}/virus/${newname}_direct_sorted.bam"
 
     # Compare coverage statistics
-    samtools coverage "${outputdir}/virus/direct/${newname}_direct_sorted.bam" > \
+    samtools coverage "${outputdir}/virus/${newname}_direct_sorted.bam" > \
     "${outputdir}/reports/${newname}_direct_viral_coverage.txt"
 
 
@@ -336,10 +392,9 @@ while IFS= read -r sra; do
         -O "${outputdir}/virus/${newname}_dedup.bam" \
         -M "${outputdir}/virus/${newname}_dedup_metrics.txt" \
         -CREATE_INDEX true \
-        -REMOVE_DUPLICATES true \
         -VALIDATION_STRINGENCY LENIENT
 
-  
+    if false; then
     ######################################################
     # HTLV-1 VARIANT CALLING
     ######################################################
@@ -370,7 +425,8 @@ while IFS= read -r sra; do
     rm -f "${outputdir}/virus/${newname}_direct_viral.bam" \
           "${outputdir}/virus/${newname}_direct_sorted.bam" 
 
-    
+
+    fi
 done < "${project_list}"
 
 
