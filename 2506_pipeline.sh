@@ -249,12 +249,15 @@ while IFS= read -r sra; do
     # Annotate variants with Funcotator (optional)
     echo "Annotating variants with Funcotator..."
     gatk --java-options "${java_mem}" Funcotator \
-         --variant "${outputdir}/human_variants/${newname}_somatic_filtered.vcf.gz" \
-         --reference "${ref_genome}" \
-         --output "${outputdir}/human_variants/${newname}_annotated.vcf.gz" \
-         --output-file-format VCF \
-         --data-sources-path ${funcotator_data} \
-         --ref-version hg38
+     --variant "${outputdir}/human_variants/${newname}_somatic_filtered.vcf.gz" \
+     --reference "${ref_genome}" \
+     --output "${outputdir}/human_variants/${newname}_annotated.vcf.gz" \
+     --output-file-format VCF \
+     --data-sources-path ${funcotator_data} \
+     --ref-version hg38 \
+     --transcript-selection-mode BEST_EFFECT \
+     --exclude-field COSMIC_overlapping_mutations 
+    
     
     # Generate variant statistics
     echo "Generating variant statistics..."
@@ -263,6 +266,8 @@ while IFS= read -r sra; do
     
     echo "✅ Mutect2 variant calling completed for ${newname}"
 
+    
+    rm "${outputdir}/human/${newname}_final_dedup.bam" "${outputdir}/human/${newname}_final_dedup.bai"  
     ###############################################
     ###############################################
     ###############################################
@@ -275,7 +280,7 @@ while IFS= read -r sra; do
 
     # Sort and index
     samtools sort -@ ${nproc} -o "${outputdir}/virus/${newname}_direct_sorted.bam" \
-    "${outputdir}/virus/direct/${newname}_direct_viral.bam"
+    "${outputdir}/virus/${newname}_direct_viral.bam"
     samtools index "${outputdir}/virus/${newname}_direct_sorted.bam"
 
     # Compare coverage statistics
