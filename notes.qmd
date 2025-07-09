@@ -107,3 +107,14 @@ toupper(s)
 substr(s, i, j)
 split(s, x, d)
 sub(f, r, s)
+
+Somatic vs germline variants
+SNV and Indels
+
+Structural variation
+
+- Deletion
+- Duplication
+- Inversion 
+- Insertion
+- Translocation

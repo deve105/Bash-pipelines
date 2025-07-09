@@ -19,7 +19,7 @@ funcotator_data="/home/labatl/devapps/2407_references/funcotator_dataSources.v1.
 nproc=32
 picard_cmd="/home/labatl/devapps/picard.jar"
 gatk_cmd="/home/labatl/devapps/gatk/gatk"
-java_mem="-Xmx32G -XX:MaxDirectMemorySize=32G"
+java_mem="-Xmx8G -XX:MaxDirectMemorySize=16G"
 
 ####Directories checks#########################
 ###############################################
@@ -66,6 +66,17 @@ for cmd in bwa-mem2 samtools fastp multiqc java; do
     fi
 done
 ###############################################
+
+if false
+then 
+### Notes
+java --version
+sudo update-alternatives --config java
+wget https://storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf
+wget https://storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf.idx
+
+fi
+
 ####Initial List###############################
 ###############################################
 # Generate a list text of all fastq files in the input directory
@@ -98,15 +109,25 @@ while IFS= read -r sra; do
     echo "✅ New name for SRA ${sra} is ${newname}"
     
     # Copy and rename the fastq files
-    echo "...Copying and renaming ${sra}R1_001.fastq.gz to ${newname}_1.fq.gz"
-    rsync -av "${sra}R1_001.fastq.gz" "${outputdir}/temp/${newname}_1.fq.gz"
-    echo "...Copying and renaming ${sra}R3_001.fastq.gz to ${newname}_2.fq.gz"
-    rsync -av "${sra}R3_001.fastq.gz" "${outputdir}/temp/${newname}_2.fq.gz"
-    echo "${newname}" >> "${outputdir}/${date_suffix}_foranalysis.txt"
-    echo "${sra},${newname}" >> "${outputdir}/${date_suffix}_ref.txt"
-    echo "✅ Fastq_1 and Fastq_2 of ${newname} copied to ${outputdir}/temp/"
+    if [ "${outputdir}/temp/${newname}_1.fq.gz" -ef "${sra}R1_001.fastq.gz" ] && [ "${outputdir}/temp/${newname}_2.fq.gz" -ef "${sra}R3_001.fastq.gz" ]; then
+        echo "✅ Fastq files already copied for ${newname}. Skipping copy step."
+    else
+        echo "...Copying and renaming ${sra}R1_001.fastq.gz to ${newname}_1.fq.gz"
+        rsync -av --inplace --no-whole-file "${sra}R1_001.fastq.gz" "${outputdir}/temp/${newname}_1.fq.gz"
+        echo "...Copying and renaming ${sra}R3_001.fastq.gz to ${newname}_2.fq.gz"
+        rsync -av --inplace --no-whole-file "${sra}R3_001.fastq.gz" "${outputdir}/temp/${newname}_2.fq.gz"
+        echo "${newname}" >> "${outputdir}/${date_suffix}_foranalysis.txt"
+        echo "${sra},${newname}" >> "${outputdir}/${date_suffix}_ref.txt"
+        echo "✅ Fastq_1 and Fastq_2 of ${newname} copied to ${outputdir}/temp/"
+    fi
+    
 
     # Quality control with fastp
+    #if [" ${outputdir}/temp/${newname}_postqc_1.fq.gz" && "${outputdir}/temp/${newname}_postqc_2.fq.gz" -f ]; then
+    if [ -f "${outputdir}/temp/${newname}_postqc_1.fq.gz" ] && [ -f "${outputdir}/temp/${newname}_postqc_2.fq.gz" ]; then
+        echo "✅ Post-QC files already exist for ${newname}. Skipping fastp step."
+        continue
+    fi
     echo "Quality control for ${newname}"
     fastp -i "${outputdir}/temp/${newname}_1.fq.gz" \
         -I "${outputdir}/temp/${newname}_2.fq.gz" \
@@ -124,11 +145,11 @@ while IFS= read -r sra; do
         --cut_window_size 4 \
         --detect_adapter_for_pe \
         --dont_eval_duplication \
-        --thread ${nproc}
+        --thread 16
+
     echo "✅ Quality control completed for ${newname}"
 	
-    rm "${outputdir}/temp/${newname}_1.fq.gz" \
-        "${outputdir}/temp/${newname}_2.fq.gz"
+    
     echo "✅ ${newname}_1.fq.gz and ${newname}_2.fq.gz removed from temp folder"
 
     fastq1="${outputdir}/temp/${newname}_postqc_1.fq.gz"
@@ -144,12 +165,7 @@ while IFS= read -r sra; do
         "${ref_genome}" \
         "${fastq1}" \
         "${fastq2}" | \
-    samtools view -@ ${nproc} -bS - > "${bamq}.bam"
-    echo "✅ BAM file created: ${bamq}.bam"
-
-    #SORTING
-    echo "Sorting BAM file"
-    samtools sort -@ ${nproc} -o "${bamq}_sorted.bam" "${bamq}.bam"
+    samtools sort -@ ${nproc} -o "${bamq}_sorted.bam" 
     echo "✅ Sorted BAM file created: ${bamq}_sorted.bam"
 
     #INDEXING
@@ -157,8 +173,8 @@ while IFS= read -r sra; do
     samtools index "${bamq}_sorted.bam"
     echo "✅ Indexed BAM file created: ${bamq}_sorted.bam.bai"
 
-    rm -f "${fastq1}" "${fastq2}" "${bamq}.bam"
-    echo "✅ Intermediate BAM file cleaned up"
+    
+
 
     ###############################################
     ###############################################
@@ -168,9 +184,6 @@ while IFS= read -r sra; do
 
     # Extract well-mapped human reads (properly paired, MAPQ>=30)
     echo "Extracting high-quality human reads..."
-    # Filter reads mapped only to human chromosomes
-    # Using regions directly in samtools (no temp file needed)
-
     # Create a temporary BED file with human chromosomes
     samtools idxstats "${bamq}_sorted.bam" | grep -v "J02029.1" | awk '{print $1"\t0\t"$2}' > "${outputdir}/human/${newname}_human_regions.bed"
 
@@ -179,26 +192,52 @@ while IFS= read -r sra; do
     "${bamq}_sorted.bam" > "${outputdir}/human/${newname}_human.bam"
 
     # Sort and index
-    samtools sort -@ ${nproc} -o "${outputdir}/human/${newname}_final.bam" "${outputdir}/human/${newname}_human.bam"
-    samtools index "${outputdir}/human/${newname}_final.bam"
-    echo "✅ Human reads extracted and sorted: ${outputdir}/human/${newname}_final.bam"
+    #samtools sort -@ ${nproc} -o "${outputdir}/human/${newname}_final.bam" "${outputdir}/human/${newname}_human.bam"
+    #samtools index "${outputdir}/human/${newname}_final.bam"
+    #echo "✅ Human reads extracted and sorted: ${outputdir}/human/${newname}_final.bam"
     
+    ## Creating BED file for coverage regions > 30
+    samtools depth -a "${outputdir}/human/${newname}_human.bam" | \
+    awk '$3 >= 30 {print $1"\t"$2-1"\t"$2"\t"$3}' | \
+    bedtools merge -d 10 -c 4 -o mean > "${outputdir}/human/${newname}_targeted.bed"
+    echo "✅ High coverage regions BED file created: ${outputdir}/human/${newname}_targeted.bed"
+
+
     # Mark duplicates
     echo "Marking duplicates in human reads..."
-    java ${java_mem} -jar ${picard_cmd} MarkDuplicates \
-        -I "${outputdir}/human/${newname}_final.bam" \
-        -O "${outputdir}/human/${newname}_final_dedup.bam" \
-        -M "${outputdir}/human/${newname}_dedup_metrics.txt" \
-        -CREATE_INDEX true \
-        -REMOVE_DUPLICATES true \
-        -VALIDATION_STRINGENCY LENIENT
+    gatk --java-options "${java_mem}" MarkDuplicatesSpark \
+    -I "${outputdir}/human/${newname}_human.bam" \
+    -O "${outputdir}/human/${newname}_final_dedup.bam" \
+    -M "${outputdir}/reports/${newname}_dedup_metrics.txt" \
+    -L "${outputdir}/human/${newname}_targeted.bed" \
+    --create-output-bam-index true \
+    --remove-sequencing-duplicates true \
+    --spark-master local[4] \
+    --tmp-dir "${outputdir}/temp/"
+    
+
+    #java ${java_mem} -jar ${picard_cmd} MarkDuplicates \
+    #    -I "${outputdir}/human/${newname}_final.bam" \
+    #    -O "${outputdir}/human/${newname}_final_dedup.bam" \
+    #    -M "${outputdir}/human/${newname}_dedup_metrics.txt" \
+    #    -CREATE_INDEX true \
+    #    -REMOVE_DUPLICATES true \
+    #    -VALIDATION_STRINGENCY LENIENT
 
     
     echo "✅ Human reads processed and duplicates marked: ${outputdir}/human/${newname}_final_dedup.bam"
+    
+
+    # Remove intermediate files
+    echo "Cleaning up intermediate files..."
+    
     rm -f "${outputdir}/human/${newname}_final.bam" \
           "${outputdir}/human/${newname}_final.bam.bai" \
           "${outputdir}/human/${newname}_human.bam" \
           "${outputdir}/human/${newname}_human_regions.bed"
+    rm -f "${fastq1}" "${fastq2}"
+    rm -f "${outputdir}/temp/${newname}_1.fq.gz" \
+        "${outputdir}/temp/${newname}_2.fq.gz"
     
     echo "✅ Cleaned up intermediate human BAM files"
 
