@@ -8,8 +8,9 @@ echo "Script for FASTQ virus and mutations by Daniel Enriquez-Vera"
 echo "Version V1 2025-06-3"
 
 ## Input
-inputdir="/media/labatl/HD-PCGU3-A/test"
-outputdir="/home/labatl/devprojects/test"
+inputdir="/media/labatl/HD-PCGU3-A/2506_fastq"
+outputdir="/home/labatl/devprojects/2506_fastq"
+outdir2="/media/labatl/HD-PCGU3-A/2506_processed"
 ref_genome="/home/labatl/devapps/2407_references/2405project_hg38/2405_hg38htlv.fa"
 htlv1_ref="/home/labatl/devapps/2407_references/htlv1/J20209_1.fasta"
 pon="/home/labatl/devapps/2407_references/1000g_pon.hg38.vcf.gz"
@@ -77,6 +78,8 @@ sudo update-alternatives --config java
 wget https://storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf
 wget https://storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf.idx
 # ref dict - .dict file before running haplotype caller
+ZGFuaWVsLmVucmlxdWV6QHVwc2piLmVkdS5wZTpQZXJ1MjAyNi4K
+
 gatk CreateSequenceDictionary R=~/Desktop/demo/supporting_files/hg38/hg38.fa O=~/Desktop/demo/supporting_files/hg38/hg38.dict
 fi
 
@@ -108,7 +111,7 @@ while IFS= read -r sra; do
     echo "✅ Processing SRA: ${sra}"
     
     # Renaming the SRA file to a new name
-    newname=$(echo "${sra}" | sed -E 's/^.*Nakahata_//; s/_S[0-9].*$//' | sed -E 's/^.*IRID/IRID/')
+    newname=$(echo "${sra}" | sed -E 's/^.*Nakahata_//' | sed -E 's/^.*IRID/IRID/')
     echo "✅ New name for SRA ${sra} is ${newname}"
     
     # Copy and rename the fastq files
@@ -358,7 +361,7 @@ while IFS= read -r sra; do
     rm "${outputdir}/human/${newname}_final_dedup.bam" "${outputdir}/human/${newname}_final_dedup.bai"  
     rm -f "${outputdir}/human/${newname}_human.bam" \
         "${outputdir}/human/${newname}_human.bam.bai" 
-    rm -f "${fastq1}" "${fastq2}"
+    rm -f "${fastq1}" "${fastq2}" "${bamq}.bam" 
     rm -f "${outputdir}/temp/${newname}_1.fq.gz" \
         "${outputdir}/temp/${newname}_2.fq.gz"
     
@@ -423,10 +426,16 @@ while IFS= read -r sra; do
     
     # Clean up intermediate files
     rm -f "${outputdir}/virus/${newname}_direct_viral.bam" \
-          "${outputdir}/virus/${newname}_direct_sorted.bam" 
+          "${outputdir}/virus/${newname}_direct_sorted.bam"
 
-
+    
     fi
+    rsync -av --inplace --no-whole-file  "${bamq}_sorted.bam" "${outdir2}/${newname}_sorted.bam"
+    rsync -av --inplace --no-whole-file  "${bamq}_sorted.bam.bai" "${outdir2}/${newname}_sorted.bam.bai"
+    rm -f "${bamq}_sorted.bam" "${outdir2}/${bamq}_sorted.bam.bai"
+    rsync -av --inplace --no-whole-file "${outputdir}/human/${newname}_final_dedup_recal.bam" "${outdir2}/${newname}_human_final_dedup_recal.bam"
+    rsync -av --inplace --no-whole-file "${outputdir}/human/${newname}_final_dedup_recal.bai" "${outdir2}/${newname}_human_final_dedup_recal.bai"
+    rm -f "${outputdir}/human/${newname}_final_dedup_recal.bam" "${outputdir}/human/${newname}_final_dedup_recal.bai"
 done < "${project_list}"
 
 
