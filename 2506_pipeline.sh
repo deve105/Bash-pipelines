@@ -15,7 +15,7 @@ ref_genome="/home/labatl/devapps/2407_references/2405project_hg38/2405_hg38htlv.
 htlv1_ref="/home/labatl/devapps/2407_references/htlv1/J20209_1.fasta"
 pon="/home/labatl/devapps/2407_references/1000g_pon.hg38.vcf.gz"
 germline_resource="/home/labatl/devapps/2407_references/af-only-gnomad.hg38.vcf.gz"
-funcotator_data="/home/labatl/devapps/2407_references/funcotator_dataSources.v1.7.20200521g"
+funcotator_data="/home/labatl/devapps/2407_references/funcotator_dataSources.v1.8.hg38.20230908s"
 known_sites="/home/labatl/devapps/2407_references/Homo_sapiens_assembly38.dbsnp138.vcf"
 
 
@@ -78,7 +78,10 @@ sudo update-alternatives --config java
 wget https://storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf
 wget https://storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf.idx
 # ref dict - .dict file before running haplotype caller
+
+## GATK key
 ZGFuaWVsLmVucmlxdWV6QHVwc2piLmVkdS5wZTpQZXJ1MjAyNi4K
+wget ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/funcotator/funcotator_dataSources.v1.8.hg38.20230908s.tar.gz  --no-check-certificate
 
 gatk CreateSequenceDictionary R=~/Desktop/demo/supporting_files/hg38/hg38.fa O=~/Desktop/demo/supporting_files/hg38/hg38.dict
 fi
@@ -223,7 +226,7 @@ while IFS= read -r sra; do
     --CREATE_INDEX true \
     --REMOVE_DUPLICATES true \
     --TMP_DIR "${outputdir}/temp/" \
-    --VALIDATION_STRINGENCY LENIENT
+    --VALIDATION_STRINGENCY LENIENT 
 
     fi
 
@@ -303,7 +306,7 @@ while IFS= read -r sra; do
         -O "${outputdir}/human_variants/${newname}_somatic_unfiltered.vcf.gz" \
         --max-population-af 0.01 \
         --genotype-germline-sites true \
-        --genotype-pon-sites true
+        --genotype-pon-sites true 
     
     # Learn read orientation model
     echo "Learning read orientation model for ${newname}..."
