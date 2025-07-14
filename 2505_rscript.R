@@ -214,3 +214,10 @@ library(maftools)
 PlotOncogenicPathways(merged_maf)
 oncoplot(merged_maf, top = 20, genes = c("TP53", "KRAS", "BRAF", "PIK3CA"))
 OncogenicPathways(merged_maf)
+
+getGeneSummary(merged_maf) |> View()
+getSampleSummary(merged_maf) |> View()
+dev.off()
+
+
+## ATL Cancer
