@@ -7,68 +7,16 @@ Tutorial from NIH
 https://nci-iteb.github.io/tumor_epidemiology_approaches/sessions/session_4/practical#examining-variants-in-igv
 
 
-library(data.table)
+https://gatk.broadinstitute.org/hc/en-us/articles/360037224432-Funcotator
 
-read_and_merge_mafs <- function(maf_files) {
-  # If input is a single pattern, find matching files
-  if (length(maf_files) == 1) {
-    maf_files <- Sys.glob(maf_files)
-  }
-  
-  # Read each MAF file
-  maf_list <- lapply(maf_files, function(f) {
-    tryCatch({
-      dt <- fread(f, sep="\t", skip="#")
-      message(sprintf("Read %s with %d rows", f, nrow(dt)))
-      dt
-    }, error = function(e) {
-      message(sprintf("Error reading %s: %s", f, e$message))
-      NULL
-    })
-  })
-  
-  # Remove NULL entries
-  maf_list <- Filter(Negate(is.null), maf_list)
-  
-  if (length(maf_list) == 0) {
-    stop("No valid MAF files were read")
-  }
-  
-  # Merge all data.tables
-  merged_maf <- rbindlist(maf_list, fill=TRUE)
-  
-  message(sprintf("Merged MAF contains %d rows from %d files", 
-                 nrow(merged_maf), length(maf_list))
-  
-  return(merged_maf)
-}
+https://gatk.broadinstitute.org/hc/en-us/articles/360035889931-Funcotator-Information-and-Tutorial
 
-# Example usage:
-# merged_maf <- read_and_merge_mafs(c("file1.maf", "file2.maf"))
-# merged_maf <- read_and_merge_mafs("path/to/mafs/*.maf")
+https://gatk.broadinstitute.org/hc/en-us/articles/360040509391-FuncotatorDataSourceDownloader
 
+https://github.com/CompGenomeLab/WGSpipe
 
-awk '
-  FNR == 1 {
-    tumor_sample = "";
-  }
-  /^## tumor_sample=/ {
-    split($0, arr, "=");
-    tumor_sample = arr[2];
-    sub(/_$/, "", tumor_sample);  
-    print $0;  
-    next;
-  }
-  FNR == 1 && !header_printed {
-    print $0;
-    header_printed = 1;
-    next;
-  }
-  {
-    if (tumor_sample == "") {
-      print "Error: No ## tumor_sample= found in " FILENAME > "/dev/stderr";
-      exit 1;
-    }
-    $16 = tumor_sample;
-    print $0;
-  }' *.maf > merged_maf.maf
+https://gatk.broadinstitute.org/hc/en-us/articles/360035889931-Funcotator-Information-and-Tutorial
+
+https://nci-iteb.github.io/tumor_epidemiology_approaches/sessions/session_4/practical
+
+https://dockstore.org/workflows/github.com/phylyc/gatk4-somatic-snvs-indels/Mutect2:master?tab=info
