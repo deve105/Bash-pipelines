@@ -1,13 +1,13 @@
 #!/usr/bin/env Rscript
 
-# MAF Files Merger for maftools
-# This script merges multiple MAF files and uses filenames as Tumor_Sample_Barcode
+# MAF Objects Merger using read.maf from maftools
+# This script reads MAF files individually using read.maf, updates sample names, and merges them
 
+library(maftools)
 library(data.table)
-library(dplyr)
 
-# Function to merge MAF files
-merge_maf_files <- function(maf_directory = ".", output_file = "merged_mutations.maf") {
+# Function to merge MAF objects with filename as Tumor_Sample_Barcode
+merge_maf_objects <- function(maf_directory = ".", output_file = NULL) {
   
   # Get all MAF files in the directory
   maf_files <- list.files(path = maf_directory, 
@@ -21,8 +21,8 @@ merge_maf_files <- function(maf_directory = ".", output_file = "merged_mutations
   cat("Found", length(maf_files), "MAF files:\n")
   cat(paste(basename(maf_files), collapse = "\n"), "\n\n")
   
-  # Initialize list to store data
-  maf_data_list <- list()
+  # Initialize list to store MAF objects
+  maf_objects <- list()
   
   # Process each MAF file
   for (i in seq_along(maf_files)) {
@@ -33,144 +33,140 @@ merge_maf_files <- function(maf_directory = ".", output_file = "merged_mutations
     
     cat("Processing:", sample_name, "\n")
     
-    # Read MAF file
+    # Read MAF file using read.maf
     tryCatch({
-      maf_data <- fread(file_path, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+      maf_obj <- read.maf(maf = file_path, verbose = FALSE)
       
-      # Check if it's a valid MAF file (should have required columns)
-      required_cols <- c("Hugo_Symbol", "Variant_Classification", "Tumor_Sample_Barcode")
-      missing_cols <- setdiff(required_cols, colnames(maf_data))
+      # Get the data table from MAF object
+      maf_data <- maf_obj@data
       
-      if (length(missing_cols) > 0) {
-        cat("Warning: Missing required columns in", sample_name, ":", paste(missing_cols, collapse = ", "), "\n")
-      }
-      
-      # Set Tumor_Sample_Barcode to filename
+      # Update Tumor_Sample_Barcode with filename
       maf_data$Tumor_Sample_Barcode <- sample_name
       
+      # Create new MAF object with updated sample names
+      updated_maf <- read.maf(maf = maf_data, verbose = FALSE)
+      
       # Store in list
-      maf_data_list[[sample_name]] <- maf_data
+      maf_objects[[sample_name]] <- updated_maf
+      
+      cat("  - Successfully processed", nrow(maf_data), "mutations\n")
       
     }, error = function(e) {
-      cat("Error reading", sample_name, ":", e$message, "\n")
+      cat("  - Error reading", sample_name, ":", e$message, "\n")
     })
   }
   
-  if (length(maf_data_list) == 0) {
+  if (length(maf_objects) == 0) {
     stop("No valid MAF files could be processed")
   }
   
-  # Combine all MAF data
-  cat("\nMerging", length(maf_data_list), "MAF files...\n")
+  cat("\nMerging", length(maf_objects), "MAF objects...\n")
   
-  # Get all unique columns across all files
-  all_columns <- unique(unlist(lapply(maf_data_list, colnames)))
-  
-  # Standardize columns in each data frame
-  maf_data_list <- lapply(maf_data_list, function(df) {
-    missing_cols <- setdiff(all_columns, colnames(df))
-    for (col in missing_cols) {
-      df[[col]] <- NA
-    }
-    return(df[, all_columns, with = FALSE])
+  # Extract data tables from all MAF objects
+  all_maf_data <- lapply(maf_objects, function(maf_obj) {
+    return(maf_obj@data)
   })
   
-  # Combine all data
-  merged_maf <- rbindlist(maf_data_list, use.names = TRUE, fill = TRUE)
+  # Combine all data tables
+  merged_data <- rbindlist(all_maf_data, use.names = TRUE, fill = TRUE)
   
-  # Ensure essential MAF columns are present with appropriate defaults
-  essential_cols <- list(
-    "Hugo_Symbol" = "Unknown",
-    "Entrez_Gene_Id" = 0,
-    "Center" = "Unknown",
-    "NCBI_Build" = "GRCh38",
-    "Chromosome" = "Unknown",
-    "Start_Position" = 0,
-    "End_Position" = 0,
-    "Strand" = "+",
-    "Variant_Classification" = "Unknown",
-    "Variant_Type" = "Unknown",
-    "Reference_Allele" = "N",
-    "Tumor_Seq_Allele1" = "N",
-    "Tumor_Seq_Allele2" = "N",
-    "Tumor_Sample_Barcode" = "Unknown"
-  )
-  
-  # Add missing essential columns with defaults
-  for (col in names(essential_cols)) {
-    if (!col %in% colnames(merged_maf)) {
-      merged_maf[[col]] <- essential_cols[[col]]
-    }
-  }
-  
-  # Reorder columns to put essential ones first
-  essential_order <- names(essential_cols)
-  other_cols <- setdiff(colnames(merged_maf), essential_order)
-  final_order <- c(essential_order, other_cols)
-  
-  merged_maf <- merged_maf[, final_order, with = FALSE]
-  
-  # Remove rows with missing Hugo_Symbol or Tumor_Sample_Barcode
-  merged_maf <- merged_maf[!is.na(Hugo_Symbol) & Hugo_Symbol != "" & 
-                          !is.na(Tumor_Sample_Barcode) & Tumor_Sample_Barcode != ""]
+  # Create final merged MAF object
+  cat("Creating merged MAF object...\n")
+  merged_maf <- read.maf(maf = merged_data, verbose = FALSE)
   
   # Summary statistics
   cat("\nMerge Summary:\n")
-  cat("Total mutations:", nrow(merged_maf), "\n")
-  cat("Total samples:", length(unique(merged_maf$Tumor_Sample_Barcode)), "\n")
-  cat("Total genes:", length(unique(merged_maf$Hugo_Symbol)), "\n")
+  cat("Total mutations:", nrow(merged_maf@data), "\n")
+  cat("Total samples:", length(unique(merged_maf@data$Tumor_Sample_Barcode)), "\n")
+  cat("Total genes:", length(unique(merged_maf@data$Hugo_Symbol)), "\n")
   
   # Sample distribution
-  sample_counts <- table(merged_maf$Tumor_Sample_Barcode)
+  sample_counts <- table(merged_maf@data$Tumor_Sample_Barcode)
   cat("\nMutations per sample:\n")
   print(sample_counts)
   
-  # Write merged MAF file
-  fwrite(merged_maf, output_file, sep = "\t", quote = FALSE, na = "")
-  cat("\nMerged MAF file written to:", output_file, "\n")
+  # Variant classification summary
+  cat("\nVariant classification summary:\n")
+  print(table(merged_maf@data$Variant_Classification))
+  
+  # Save merged MAF object if output file specified
+  if (!is.null(output_file)) {
+    write.mafSummary(maf = merged_maf, basename = tools::file_path_sans_ext(output_file))
+    fwrite(merged_maf@data, output_file, sep = "\t", quote = FALSE, na = "")
+    cat("\nMerged MAF file written to:", output_file, "\n")
+  }
   
   return(merged_maf)
 }
 
-# Function to validate MAF for maftools
-validate_maf_for_maftools <- function(maf_file) {
+# Function to create summary plots for merged MAF
+create_summary_plots <- function(merged_maf, output_dir = "maf_plots") {
   
-  cat("Validating MAF file for maftools compatibility...\n")
-  
-  maf_data <- fread(maf_file, sep = "\t", header = TRUE)
-  
-  # Check required columns for maftools
-  required_for_maftools <- c(
-    "Hugo_Symbol",
-    "Variant_Classification", 
-    "Tumor_Sample_Barcode"
-  )
-  
-  missing_required <- setdiff(required_for_maftools, colnames(maf_data))
-  
-  if (length(missing_required) > 0) {
-    cat("ERROR: Missing required columns for maftools:", paste(missing_required, collapse = ", "), "\n")
-    return(FALSE)
+  if (!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
   }
   
-  # Check for valid variant classifications
-  valid_classifications <- c(
-    "Frame_Shift_Del", "Frame_Shift_Ins", "In_Frame_Del", "In_Frame_Ins",
-    "Missense_Mutation", "Nonsense_Mutation", "Silent", "Splice_Site",
-    "Translation_Start_Site", "Nonstop_Mutation", "3'UTR", "3'Flank",
-    "5'UTR", "5'Flank", "IGR", "Intron", "RNA", "Targeted_Region"
-  )
+  cat("Creating summary plots...\n")
   
-  invalid_classifications <- setdiff(unique(maf_data$Variant_Classification), valid_classifications)
+  # MAF summary plot
+  pdf(file.path(output_dir, "maf_summary.pdf"), width = 10, height = 8)
+  plotmafSummary(maf = merged_maf, rmOutlier = TRUE, addStat = 'median', dashboard = TRUE)
+  dev.off()
   
-  if (length(invalid_classifications) > 0) {
-    cat("WARNING: Non-standard variant classifications found:", paste(invalid_classifications, collapse = ", "), "\n")
+  # Oncoplot
+  pdf(file.path(output_dir, "oncoplot.pdf"), width = 12, height = 8)
+  oncoplot(maf = merged_maf, top = 20, removeNonMutated = TRUE)
+  dev.off()
+  
+  # Transition and transversion plot
+  pdf(file.path(output_dir, "titv_plot.pdf"), width = 10, height = 6)
+  titv_summary <- titv(maf = merged_maf, plot = TRUE, useSyn = TRUE)
+  dev.off()
+  
+  # Variant classification plot
+  pdf(file.path(output_dir, "variant_classification.pdf"), width = 10, height = 6)
+  plotVafDistribution(maf = merged_maf, vafCol = 'HGVSp')
+  dev.off()
+  
+  cat("Plots saved to:", output_dir, "\n")
+  
+  return(invisible(NULL))
+}
+
+# Function to compare samples in merged MAF
+compare_samples <- function(merged_maf, output_dir = "sample_comparisons") {
+  
+  if (!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
   }
   
-  cat("MAF file validation complete.\n")
-  cat("Ready for maftools processing!\n")
+  # Get sample names
+  samples <- getSampleSummary(merged_maf)$Tumor_Sample_Barcode
   
-  return(TRUE)
+  if (length(samples) < 2) {
+    cat("Need at least 2 samples for comparison\n")
+    return(invisible(NULL))
+  }
+  
+  cat("Comparing", length(samples), "samples...\n")
+  
+  # Sample comparison matrix
+  pdf(file.path(output_dir, "sample_comparison.pdf"), width = 12, height = 10)
+  somaticInteractions(maf = merged_maf, top = 25, pvalue = c(0.05, 0.1))
+  dev.off()
+  
+  # Mutational signature analysis (if possible)
+  tryCatch({
+    pdf(file.path(output_dir, "mutational_signatures.pdf"), width = 12, height = 8)
+    sig_res <- extractSignatures(maf = merged_maf, nTry = 3, plotBestFit = TRUE)
+    dev.off()
+  }, error = function(e) {
+    cat("Could not perform signature analysis:", e$message, "\n")
+  })
+  
+  cat("Sample comparison plots saved to:", output_dir, "\n")
+  
+  return(invisible(NULL))
 }
 
 # Main execution
@@ -189,19 +185,24 @@ if (!interactive()) {
     output_file <- args[2]
   }
   
-  # Merge MAF files
-  merged_data <- merge_maf_files(maf_dir, output_file)
+  # Merge MAF objects
+  merged_maf <- merge_maf_objects(maf_dir, output_file)
   
-  # Validate for maftools
-  validate_maf_for_maftools(output_file)
+  # Create summary plots
+  create_summary_plots(merged_maf)
+  
+  # Compare samples
+  compare_samples(merged_maf)
   
 } else {
-  cat("Script loaded. Use merge_maf_files() to merge MAF files.\n")
-  cat("Usage: merge_maf_files(maf_directory = '.', output_file = 'merged_mutations.maf')\n")
+  cat("Script loaded. Use merge_maf_objects() to merge MAF files.\n")
+  cat("Usage: merged_maf <- merge_maf_objects(maf_directory = '.', output_file = 'merged_mutations.maf')\n")
+  cat("Then use: create_summary_plots(merged_maf) for visualization\n")
 }
 
-# Example usage for maftools after merging:
-# library(maftools)
-# merged_maf <- read.maf("merged_mutations.maf")
+# Example usage after merging:
+# merged_maf <- merge_maf_objects("path/to/maf/files", "merged_mutations.maf")
 # plotmafSummary(merged_maf)
 # oncoplot(merged_maf, top = 20)
+# create_summary_plots(merged_maf)
+# compare_samples(merged_maf)
