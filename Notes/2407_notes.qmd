@@ -46,3 +46,29 @@ read_and_merge_mafs <- function(maf_files) {
 # Example usage:
 # merged_maf <- read_and_merge_mafs(c("file1.maf", "file2.maf"))
 # merged_maf <- read_and_merge_mafs("path/to/mafs/*.maf")
+
+
+awk '
+  FNR == 1 {
+    tumor_sample = "";
+  }
+  /^## tumor_sample=/ {
+    split($0, arr, "=");
+    tumor_sample = arr[2];
+    sub(/_$/, "", tumor_sample);  
+    print $0;  
+    next;
+  }
+  FNR == 1 && !header_printed {
+    print $0;
+    header_printed = 1;
+    next;
+  }
+  {
+    if (tumor_sample == "") {
+      print "Error: No ## tumor_sample= found in " FILENAME > "/dev/stderr";
+      exit 1;
+    }
+    $16 = tumor_sample;
+    print $0;
+  }' *.maf > merged_maf.maf
