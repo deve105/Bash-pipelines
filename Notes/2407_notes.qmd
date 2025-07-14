@@ -1,0 +1,48 @@
+## Annovar or Funcotator
+
+https://annovar.openbioinformatics.org/en/latest/user-guide/startup/#a-useful-tutorial
+
+Tutorial from NIH
+
+https://nci-iteb.github.io/tumor_epidemiology_approaches/sessions/session_4/practical#examining-variants-in-igv
+
+
+library(data.table)
+
+read_and_merge_mafs <- function(maf_files) {
+  # If input is a single pattern, find matching files
+  if (length(maf_files) == 1) {
+    maf_files <- Sys.glob(maf_files)
+  }
+  
+  # Read each MAF file
+  maf_list <- lapply(maf_files, function(f) {
+    tryCatch({
+      dt <- fread(f, sep="\t", skip="#")
+      message(sprintf("Read %s with %d rows", f, nrow(dt)))
+      dt
+    }, error = function(e) {
+      message(sprintf("Error reading %s: %s", f, e$message))
+      NULL
+    })
+  })
+  
+  # Remove NULL entries
+  maf_list <- Filter(Negate(is.null), maf_list)
+  
+  if (length(maf_list) == 0) {
+    stop("No valid MAF files were read")
+  }
+  
+  # Merge all data.tables
+  merged_maf <- rbindlist(maf_list, fill=TRUE)
+  
+  message(sprintf("Merged MAF contains %d rows from %d files", 
+                 nrow(merged_maf), length(maf_list))
+  
+  return(merged_maf)
+}
+
+# Example usage:
+# merged_maf <- read_and_merge_mafs(c("file1.maf", "file2.maf"))
+# merged_maf <- read_and_merge_mafs("path/to/mafs/*.maf")
