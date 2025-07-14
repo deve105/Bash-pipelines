@@ -99,6 +99,9 @@ merge_maf_objects <- function(maf_directory = ".", output_file = NULL) {
   return(merged_maf)
 }
 
+merged_maf
+plotmafSummary(merged_maf)
+oncoplot(merged_maf, top = 20)
 # Function to create summary plots for merged MAF
 create_summary_plots <- function(merged_maf, output_dir = "maf_plots") {
   
@@ -201,8 +204,13 @@ if (!interactive()) {
 }
 
 # Example usage after merging:
-# merged_maf <- merge_maf_objects("path/to/maf/files", "merged_mutations.maf")
-# plotmafSummary(merged_maf)
-# oncoplot(merged_maf, top = 20)
-# create_summary_plots(merged_maf)
-# compare_samples(merged_maf)
+merged_maf <- merge_maf_objects("/Users/denriquez/Library/CloudStorage/OneDrive-KagoshimaUniversity/maf_htlv")
+getSampleSummary(merged_maf)
+plotmafSummary(merged_maf)
+oncoplot(merged_maf, top = 20)
+create_summary_plots(merged_maf)
+compare_samples(merged_maf)
+library(maftools)
+PlotOncogenicPathways(merged_maf)
+oncoplot(merged_maf, top = 20, genes = c("TP53", "KRAS", "BRAF", "PIK3CA"))
+OncogenicPathways(merged_maf)
