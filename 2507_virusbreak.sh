@@ -13,7 +13,7 @@ nproc=16  # adjust based on available cores
 min_mapq=30  # minimum mapping quality
 htlv_ref="/home/labatl/devapps/2407_references/2405project_hg38/J20209_1.fasta"  
 # HTLV-1 reference name (adjust if using different HTLV)
-ref_genome="/home/labatl/devapps/2407_references/2405project_hg38/2405_hg38htlv.fa"
+ref_genome="/home/labatl/devapps/2407_references/2405project_hg38/2405_hg38_bwa/2405_hg38htlv.fa"
 gridss_jar="/home/labatl/devapps/gridss.jar"
 virusbreakenddb="/home/labatl/devapps/2407_references/2405project_hg38/gridss/virusbreakenddb_20210401"
 # Reading BAM files folder ending with _sorted.bam
@@ -34,7 +34,7 @@ while IFS= read -r sra; do
         -o "${finaloutput}" \
         -w "${outputdir}/tmp" \
         --db "${virusbreakenddb}" \
-        --threads 2 \
+        --threads 4 \
         --kraken2args "--memory-mapping" \
         "${virusbam}"
 #--viralreferences "/home/labatl/devprojects/2507_breakend/htlv.txt" \
