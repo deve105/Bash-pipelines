@@ -1,3 +1,12 @@
+## Cancer Genomics Course
+
+https://github.com/WCSCourses/Cancer_Genome_Analysis/blob/main/course_modules_2023/Mutational_signature_analysis/MutSigs_WCSCGA2023_4.pdf
+https://github.com/cortes-ciriano-lab/CancerGenomicsCourse_EMBL-EBI/blob/main/docs/VariantAnnotation.md
+https://github.com/BenLangmead/ads1-slides/tree/master
+
+## Youtube tutorial for Variant Calling
+https://github.com/kpatel427/YouTubeTutorials/blob/main/variant_calling.sh
+
 ## Annovar or Funcotator
 
 https://annovar.openbioinformatics.org/en/latest/user-guide/startup/#a-useful-tutorial
@@ -6,6 +15,8 @@ Tutorial from NIH
 
 https://nci-iteb.github.io/tumor_epidemiology_approaches/sessions/session_4/practical#examining-variants-in-igv
 
+## Tutorial from Bioconductor
+https://www.bioconductor.org/packages/devel/bioc/vignettes/maftools/inst/doc/maftools.html#1_Introduction
 
 https://gatk.broadinstitute.org/hc/en-us/articles/360037224432-Funcotator
 
@@ -20,3 +31,12 @@ https://gatk.broadinstitute.org/hc/en-us/articles/360035889931-Funcotator-Inform
 https://nci-iteb.github.io/tumor_epidemiology_approaches/sessions/session_4/practical
 
 https://dockstore.org/workflows/github.com/phylyc/gatk4-somatic-snvs-indels/Mutect2:master?tab=info
+
+## SigProfile extractor
+
+https://osf.io/t6j7u/wiki/2.%20Quick%20Start%20Example/ 
+https://github.com/AlexandrovLab/SigProfilerExtractor
+https://signal.mutationalsignatures.com/explore/main/cancer/signatures?cohort=1&perSample=true
+
+## Structural Variants
+https://github.com/lucianhu/tutorialSVcalling

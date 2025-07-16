@@ -214,3 +214,24 @@ library(maftools)
 PlotOncogenicPathways(merged_maf)
 oncoplot(merged_maf, top = 20, genes = c("TP53", "KRAS", "BRAF", "PIK3CA"))
 OncogenicPathways(merged_maf)
+
+getGeneSummary(merged_maf) |> View()
+getSampleSummary(merged_maf) |> View()
+dev.off()
+
+
+## ATL Cancer
+# IRID067
+pacman::p_load(tidyverse, maftools, data.table)
+IRID067 = read.maf("/Users/denriquez/Library/CloudStorage/OneDrive-KagoshimaUniversity/maf_htlv/IRID067_S233_L007__final.maf")
+IRID067
+IRID086 = read.maf("/Users/denriquez/Library/CloudStorage/OneDrive-KagoshimaUniversity/maf_htlv/IRID086_S291_L008__final.maf")
+SS02 = read.maf("/Users/denriquez/Library/CloudStorage/OneDrive-KagoshimaUniversity/maf_htlv/SS02_S1_L001__final.maf")
+getSampleSummary(IRID086) |> View()
+getGeneSummary(SS02) |> View()
+IRID062 = read.maf("/Users/denriquez/Library/CloudStorage/OneDrive-KagoshimaUniversity/maf_htlv/IRID062_S231_L007__final.maf")
+getGeneSummary(IRID062) |> View()
+IRID067 = read.maf("/Users/denriquez/Library/CloudStorage/OneDrive-KagoshimaUniversity/maf_htlv/IRID067_S233_L007__final.maf")
+inferHeterogeneity(IRID062)
+hettres=inferHeterogeneity(IRID067)
+hettres$clusterAssignments
