@@ -1,0 +1,12 @@
+## Methods
+Genomic analysis
+High quality genomic DNA was extracted from PBMC using the QIAamp DNA Blood Mini Kit (QIAGEN). Target sequencing for 280 human genes (coding exongs and unstranslated regions) and HTLV-1 genome was performed as previously described. (Yamigishi, 2021) After enrichment of target regions with baits, genomic DNA was sequenced using a HiSeq2500 sequencer (Illumina) with 100-bp paired-end (PE) reads.
+
+Panel-based ultra-deep sequencing quantitatively detected deletions and mutations with high sensitivity, compared with WGS
+
+
+We evaluated longitudinally collected genomic DNA from 4 asymptomatic carriers.
+FASTP as previous step
+The reads were aligned to the human reference genome hg38 using BWA-MEM2 (version).
+Somatic mutation candidates were obtained using Mutect2 and following GATK standard pipeline, and annotated with Funcotator. Candidate mutations were: 
+

@@ -5,7 +5,7 @@
 
 library(maftools)
 library(data.table)
-
+library(tidyverse)
 # Function to merge MAF objects with filename as Tumor_Sample_Barcode
 merge_maf_objects <- function(maf_directory = ".", output_file = NULL) {
   
@@ -205,6 +205,11 @@ if (!interactive()) {
 
 # Example usage after merging:
 merged_maf <- merge_maf_objects("/Users/denriquez/Library/CloudStorage/OneDrive-KagoshimaUniversity/maf_htlv")
+merged_maf@data$Tumor_Sample_Barcode
+merged_maf@data[merged_maf@data$Tumor_Sample_Barcode=="IRID086_S291_L008__final",] |>
+select(Hugo_Symbol, Chromosome, Start_Position, End_Position, Variant_Classification, Variant_Type, Reference_Allele, Tumor_Seq_Allele1, Tumor_Seq_Allele2, t_alt_count, t_ref_count, n_alt_count, n_ref_count )
+
+colnames(merged_maf@data)
 getSampleSummary(merged_maf)
 plotmafSummary(merged_maf)
 oncoplot(merged_maf, top = 20)

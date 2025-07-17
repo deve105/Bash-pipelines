@@ -6,14 +6,20 @@ https://github.com/BenLangmead/ads1-slides/tree/master
 
 ## Youtube tutorial for Variant Calling
 https://github.com/kpatel427/YouTubeTutorials/blob/main/variant_calling.sh
+https://www.youtube.com/watch?v=XZ8scaScfjw
+https://www.youtube.com/watch?v=_LG-Ar5sZl4
 
 ## Annovar or Funcotator
 
 https://annovar.openbioinformatics.org/en/latest/user-guide/startup/#a-useful-tutorial
 
-Tutorial from NIH
+## Tutorial from NIH
 
 https://nci-iteb.github.io/tumor_epidemiology_approaches/sessions/session_4/practical#examining-variants-in-igv
+
+https://bioconductor.org/packages/devel/bioc/vignettes/PureCN/inst/doc/Quick.html
+
+https://docs.gdc.cancer.gov/Data/Bioinformatics_Pipelines/DNA_Seq_Variant_Calling_Pipeline/#varscan
 
 ## Tutorial from Bioconductor
 https://www.bioconductor.org/packages/devel/bioc/vignettes/maftools/inst/doc/maftools.html#1_Introduction
@@ -40,3 +46,6 @@ https://signal.mutationalsignatures.com/explore/main/cancer/signatures?cohort=1&
 
 ## Structural Variants
 https://github.com/lucianhu/tutorialSVcalling
+
+## RNA seq
+https://www.youtube.com/watch?v=x8WyBpQrsL0
