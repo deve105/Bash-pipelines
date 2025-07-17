@@ -14,7 +14,7 @@ min_mapq=30  # minimum mapping quality
 htlv_ref="/home/labatl/devapps/2407_references/2405project_hg38/J20209_1.fasta"  
 # HTLV-1 reference name (adjust if using different HTLV)
 ref_genome="/home/labatl/devapps/2407_references/2405project_hg38/2405_hg38_bwa/2405_hg38htlv.fa"
-gridss_jar="/home/labatl/devapps/gridss.jar"
+gridss_jar="/home/labatl/devapps/gridss/gridss.jar"
 virusbreakenddb="/home/labatl/devapps/2407_references/2405project_hg38/gridss/virusbreakenddb_20210401"
 # Reading BAM files folder ending with _sorted.bam
 
