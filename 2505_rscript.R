@@ -240,3 +240,8 @@ IRID067 = read.maf("/Users/denriquez/Library/CloudStorage/OneDrive-KagoshimaUniv
 inferHeterogeneity(IRID062)
 hettres=inferHeterogeneity(IRID067)
 hettres$clusterAssignments
+
+
+lines <- readLines("/Users/denriquez/Library/CloudStorage/OneDrive-Personal/0422_fa_380_all.fa")
+lines <- ifelse(grepl("^>", lines), sub("^>", ">kraken:taxid|9606|", lines), lines)
+writeLines(lines, "/Users/denriquez/Library/CloudStorage/OneDrive-Personal/2507_taxid_htlv.fa")
