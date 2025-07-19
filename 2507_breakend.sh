@@ -4,7 +4,7 @@ set -euo pipefail
 
 
 inputdir="/media/labatl/HD-PCGU3-A/2506_processed"
-outputdir="/home/labatl/devprojects/2507_breakend"
+outputdir="/home/labatl/devprojects/2507_breakendv2"
 
 # Input parameters
 
@@ -76,7 +76,7 @@ while IFS= read -r sra; do
     -O "${outputdir}/${newname}_htlv_dedup.bam"  \
     -M ${outputdir}/${newname}_dedup_metrics.txt \
     --CREATE_INDEX false \
-    --REMOVE_DUPLICATES true
+    --REMOVE_DUPLICATES false
 
     samtools index -@ ${nproc} "${outputdir}/${newname}_htlv_dedup.bam"
     # 4. Cleanup
