@@ -17,6 +17,8 @@ ref_genome="/home/labatl/devapps/2407_references/2405project_hg38/2405_hg38_bwa/
 gridss_jar="/home/labatl/devapps/gridss/gridss.jar"
 virusbreakenddb="/home/labatl/Downloads/virusbreakenddb_20210401_new"
 listvirus="/home/labatl/devprojects/2507_breakend/htlv.txt"
+
+onedrive="/home/labatl/OneDrive"
 # Reading BAM files folder ending with _sorted.bam
 
 
@@ -26,7 +28,7 @@ while IFS= read -r sra; do
 
     # virus bam aligned
     virusbam="${outputdir}/${newname}_htlv_dedup.bam"
-    finaloutput="${outputdir}/output4/${newname}_breakend.vcf"
+    finaloutput="${onedrive}/output4/${newname}_breakend.vcf"
     
     # Run virusbreakend, continue to next file if it fails
     if ! virusbreakend \
@@ -41,8 +43,9 @@ while IFS= read -r sra; do
         --minreads 1 \
         --host human \
         --viralreferences "${listvirus}" \
-        "${virusbam}"; then
+        "${sra}"; then
         echo "❌ VirusBreakend failed for ${newname}, skipping to next."
     fi
-#--viralreferences "/home/labatl/devprojects/2507_breakend/htlv.txt" \
 done < "${outputdir}/project_list.txt"
+
+onedrive -s
