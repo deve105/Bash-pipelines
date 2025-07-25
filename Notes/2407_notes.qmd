@@ -1,13 +1,10 @@
 ## Cancer Genomics Course
 
-https://github.com/WCSCourses/Cancer_Genome_Analysis/blob/main/course_modules_2023/Mutational_signature_analysis/MutSigs_WCSCGA2023_4.pdf
-https://github.com/cortes-ciriano-lab/CancerGenomicsCourse_EMBL-EBI/blob/main/docs/VariantAnnotation.md
-https://github.com/BenLangmead/ads1-slides/tree/master
+https://github.com/WCSCourses/Cancer_Genome_Analysis/blob/main/course_modules_2023/Mutational_signature_analysis/MutSigs_WCSCGA2023_4.pdf https://github.com/cortes-ciriano-lab/CancerGenomicsCourse_EMBL-EBI/blob/main/docs/VariantAnnotation.md https://github.com/BenLangmead/ads1-slides/tree/master
 
 ## Youtube tutorial for Variant Calling
-https://github.com/kpatel427/YouTubeTutorials/blob/main/variant_calling.sh
-https://www.youtube.com/watch?v=XZ8scaScfjw
-https://www.youtube.com/watch?v=_LG-Ar5sZl4
+
+https://github.com/kpatel427/YouTubeTutorials/blob/main/variant_calling.sh https://www.youtube.com/watch?v=XZ8scaScfjw https://www.youtube.com/watch?v=\_LG-Ar5sZl4
 
 ## Annovar or Funcotator
 
@@ -22,6 +19,7 @@ https://bioconductor.org/packages/devel/bioc/vignettes/PureCN/inst/doc/Quick.htm
 https://docs.gdc.cancer.gov/Data/Bioinformatics_Pipelines/DNA_Seq_Variant_Calling_Pipeline/#varscan
 
 ## Tutorial from Bioconductor
+
 https://www.bioconductor.org/packages/devel/bioc/vignettes/maftools/inst/doc/maftools.html#1_Introduction
 
 https://gatk.broadinstitute.org/hc/en-us/articles/360037224432-Funcotator
@@ -40,12 +38,18 @@ https://dockstore.org/workflows/github.com/phylyc/gatk4-somatic-snvs-indels/Mute
 
 ## SigProfile extractor
 
-https://osf.io/t6j7u/wiki/2.%20Quick%20Start%20Example/ 
-https://github.com/AlexandrovLab/SigProfilerExtractor
-https://signal.mutationalsignatures.com/explore/main/cancer/signatures?cohort=1&perSample=true
+https://osf.io/t6j7u/wiki/2.%20Quick%20Start%20Example/ https://github.com/AlexandrovLab/SigProfilerExtractor https://signal.mutationalsignatures.com/explore/main/cancer/signatures?cohort=1&perSample=true
 
 ## Structural Variants
+
 https://github.com/lucianhu/tutorialSVcalling
 
 ## RNA seq
+
 https://www.youtube.com/watch?v=x8WyBpQrsL0
+
+## The Bottleneck Problem in Cancer Variant Interpretation
+
+Oncogene addiction of driver mutations
+
+![](images/paste-1.png)
