@@ -39,3 +39,17 @@ STAR \
     --sjdbGTFfile ~/coreapps/2025_refgenomes/GRCh38_htlv.gtf \
     --sjdbOverhang 99
 ```
+
+
+### 3. Download SRA and QC
+
+```sh
+# multiqc
+pip install multiqc
+# sra-tools
+wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/3.2.1/sratoolkit.3.2.1-ubuntu64.tar.gz
+tar -vxzf sratoolkit.3.2.1-ubuntu64.tar.gz 
+# fastp
+wget http://opengene.org/fastp/fastp
+chmod a+x ./fastp
+```
