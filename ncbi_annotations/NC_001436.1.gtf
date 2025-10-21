@@ -1,0 +1,23 @@
+##gff-version 2
+##date: 2025-10-21
+##genome-build: NC_001436.1
+##organism: Human T-lymphotropic virus 1
+##sequence-length: 8507
+##definition: Human T-lymphotropic virus 1, complete genome.
+#
+NC_001436.1	NCBI	gene	450	4836	.	+	.	gene_id "HTLV1gp1"; gene_name "HTLV1gp1"; gene_type "protein_coding"; gene_description "unknown";
+NC_001436.1	NCBI	gene	450	2404	.	+	.	gene_id "HTLV1gp2"; gene_name "HTLV1gp2"; gene_type "protein_coding"; gene_description "unknown";
+NC_001436.1	NCBI	gene	450	1739	.	+	.	gene_id "gag"; gene_name "gag"; gene_type "protein_coding"; gene_description "unknown";
+NC_001436.1	NCBI	gene	450	1739	.	+	.	gene_id "gag"; gene_name "gag"; gene_type "protein_coding"; gene_description "Pr55";
+NC_001436.1	NCBI	transcript	450	1739	.	+	.	gene_id "gag"; transcript_id "gag_001"; gene_name "gag"; gene_type "protein_coding"; transcript_type "protein_coding";
+NC_001436.1	NCBI	exon	450	1739	.	+	.	gene_id "gag"; transcript_id "gag_001"; exon_number "1"; gene_name "gag"; gene_type "protein_coding"; transcript_type "protein_coding";
+NC_001436.1	NCBI	CDS	450	1739	.	+	0	gene_id "gag"; transcript_id "gag_001"; exon_number "1"; gene_name "gag"; gene_type "protein_coding"; transcript_type "protein_coding"; protein_id "NP_057862.1"; product "Pr55";
+NC_001436.1	NCBI	gene	1718	2404	.	+	.	gene_id "pro"; gene_name "pro"; gene_type "protein_coding"; gene_description "unknown";
+NC_001436.1	NCBI	gene	2245	4836	.	+	.	gene_id "pol"; gene_name "pol"; gene_type "protein_coding"; gene_description "unknown";
+NC_001436.1	NCBI	gene	4773	8008	.	+	.	gene_id "rex"; gene_name "rex"; gene_type "protein_coding"; gene_description "unknown";
+NC_001436.1	NCBI	gene	4829	8008	.	+	.	gene_id "tax"; gene_name "tax"; gene_type "protein_coding"; gene_description "unknown";
+NC_001436.1	NCBI	gene	4829	6295	.	+	.	gene_id "env"; gene_name "env"; gene_type "protein_coding"; gene_description "unknown";
+NC_001436.1	NCBI	gene	4829	6295	.	+	.	gene_id "env"; gene_name "env"; gene_type "protein_coding"; gene_description "gp46 SU";
+NC_001436.1	NCBI	transcript	4829	6295	.	+	.	gene_id "env"; transcript_id "env_001"; gene_name "env"; gene_type "protein_coding"; transcript_type "protein_coding";
+NC_001436.1	NCBI	exon	4829	6295	.	+	.	gene_id "env"; transcript_id "env_001"; exon_number "1"; gene_name "env"; gene_type "protein_coding"; transcript_type "protein_coding";
+NC_001436.1	NCBI	CDS	4829	6295	.	+	0	gene_id "env"; transcript_id "env_001"; exon_number "1"; gene_name "env"; gene_type "protein_coding"; transcript_type "protein_coding"; protein_id "NP_057865.1"; product "gp46 SU";

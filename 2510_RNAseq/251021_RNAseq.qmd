@@ -1,0 +1,44 @@
+
+
+## [STAR](https://github.com/alexdobin/STAR)
+
+### 1.  STAR downloading
+
+```bash
+wget https://github.com/alexdobin/STAR/archive/2.7.11b.tar.gz
+tar -xzf 2.7.11b.tar.gz
+cd STAR-2.7.11b
+```
+
+### 2. Creating reference genome
+
+Human Reference Genome (v49 25-09-02)
+GENCODE 
+```bash
+### FASTA
+wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_49/GRCh38.primary_assembly.genome.fa.gz
+
+### GTF annotation
+wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_49/gencode.v49.primary_assembly.annotation.gtf.gz
+```
+
+HTLV-1 reference
+```bash
+### FASTA
+# https://www.ncbi.nlm.nih.gov/nuccore/NC_001436.1
+
+### GTF created with customized create_gtf.sh 
+```
+STAR Index for human + HTLV1
+```sh
+STAR \
+    --runThreadN 15 \
+    --runMode genomeGenerate \
+    --genomeDir ~/coreapps/2025_refgenomes/2510_hg38_htlv \
+    --genomeFastaFiles ~/coreapps/2025_refgenomes/GRCh38_htlv.fa \
+    --sjdbGTFfile ~/coreapps/2025_refgenomes/GRCh38_htlv.gtf \
+    --sjdbOverhang 99
+
+
+
+```
