@@ -38,7 +38,4 @@ STAR \
     --genomeFastaFiles ~/coreapps/2025_refgenomes/GRCh38_htlv.fa \
     --sjdbGTFfile ~/coreapps/2025_refgenomes/GRCh38_htlv.gtf \
     --sjdbOverhang 99
-
-
-
 ```
