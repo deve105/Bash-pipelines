@@ -48,6 +48,7 @@ if ! command -v multiqc &>/dev/null; then
     exit 1
 fi
 
+if false; then
 # Step 3 - Download SRA data
 while IFS= read -r sra; do
     echo "Downloading ${sra}"
@@ -69,6 +70,7 @@ while IFS= read -r sra; do
         echo "Error: fasterq-dump failed for ${sra}"
         exit 1
     fi
+
 		
 	# Check if the files are paired-end or single-end
     if [ -f "${filename}/rawdata/${sra}_1.fastq" ] && [ -f "${filename}/rawdata/${sra}_2.fastq" ]; then
@@ -89,6 +91,8 @@ while IFS= read -r sra; do
     echo "${sra} was downloaded and processed :)"
 done < "$1"
 
+
+
 # Step 4 - Run fastp on the rawdata folder
 echo "Running fastp on the rawdata folder"
 while IFS= read -r sra; do
@@ -101,9 +105,9 @@ while IFS= read -r sra; do
             -O "${filename}/rawdata/${sra}_postqc_2.fq.gz" \
 			-j "${filename}/reports/${sra}_fastp.json" \
             -h "${filename}/reports/${sra}_fastp.html" \
-            -q 30 \ #Sets the quality threshold for filtering reads. Reads with average quality below this 
-            -u 40 \ #Sets the percentage of bases allowed to be below the quality threshold
-            -n 5 \ #Discards reads containing more than this number of N bases
+            -q 30 \
+            -u 40 \
+            -n 5 
 		rm "${filename}/rawdata/${sra}_1.fq.gz" "${filename}/rawdata/${sra}_2.fq.gz"	
     elif [ -f "${filename}/rawdata/${sra}_1.fq.gz" ]; then
         # Single-end mode
@@ -113,13 +117,14 @@ while IFS= read -r sra; do
 			-h "${filename}/reports/${sra}_fastp.html" \
             -q 30 \
             -u 40 \
-            -n 5 \ 
+            -n 5  
 		rm "${filename}/rawdata/${sra}_1.fq.gz" 
     else
         echo "Error: No valid FASTQ files found for $sra"
         exit 1
     fi
 done < "$1"
+fi
 
 # Step 6 - Re-Run MultiQC on the rawdata folder
 echo "Running MultiQC on the rawdata folder"
