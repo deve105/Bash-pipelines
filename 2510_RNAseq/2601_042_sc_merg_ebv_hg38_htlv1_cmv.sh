@@ -9,6 +9,7 @@ ref_dir="/home/htlvatl/coreapps/2025_refgenomes"
 hg="GRCh38.primary_assembly.genome"
 htlv1="AF033817_1"
 ebv="AJ507799_2"
+cmv="AY446894_2"
 
 cd "$ref_dir"
 
@@ -18,9 +19,9 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "STEP 1: Merging FASTA Files"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-echo "🔗 Merging fasta GRCh38 with HTLV-1 and EBV..."
+echo "🔗 Merging fasta GRCh38 with HTLV-1, EBV and CMV..."
 
-cat "${hg}.fa" "${htlv1}.fa" "${ebv}.fa" > "${ref_dir}/2601_001_di_htlv1_ebv_hg38/2601_001_rf_htlv1_ebv_hg38.fa"
+cat "${hg}.fa" "${htlv1}.fa" "${ebv}.fa" "${cmv}.fa" > "${ref_dir}/2601_001_di_htlv1_ebv_hg38/2601_001_rf_htlv1_ebv_hg38.fa"
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "STEP 1: Merging GTF Files"
@@ -51,6 +52,9 @@ echo "🔗 Merging GTF files..."
 
     # Copy EBV annotations (skip headers)
     grep -v "^#" "${ebv}.gtf"
+
+    # Copy CMV annotations (skip headers)
+    grep -v "^#" "${cmv}.gtf"
     
 } > "${merged_gtf}"
 
@@ -76,6 +80,8 @@ files_to_remove=(
     "${ref_dir}/${ebv}.gtf"
     "${ref_dir}/${hg}.fa"
     "${ref_dir}/${hg2}.gtf"
+    "${ref_dir}/${cmv}.fa"
+    "${ref_dir}/${cmv}.gtf"
 )
 
 for file in "${files_to_remove[@]}"; do
