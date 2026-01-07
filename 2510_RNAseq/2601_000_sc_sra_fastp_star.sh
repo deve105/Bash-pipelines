@@ -86,7 +86,7 @@ while IFS= read -r sra; do
 
     # Step 3.2 - Convert SRA to FASTQ using fasterq-dump
     if ! fasterq-dump --mem 30G \
-                      --threads 8 \
+                      --threads 12 \
                       --skip-technical \
                       --outdir "${filename_path}/rawdata/" \
                       --temp "${filename_path}" \
@@ -128,7 +128,7 @@ while IFS= read -r sra; do
             --correction \
             -e 15 \
             -q 15 \
-            -w 10 \
+            -w 12 \
             -u 40 \
             -n 5 \
             2>&1 | tee -a "${filename_path}/logs/${sra}_fastp.log"
@@ -144,7 +144,7 @@ while IFS= read -r sra; do
             --correction \
             -e 15 \
             -q 15 \
-            -w 10 \
+            -w 12 \
             -u 40 \
             -n 5 \
             2>&1 | tee -a "${filename_path}/logs/${sra}_fastp.log"
@@ -163,7 +163,7 @@ while IFS= read -r sra; do
         #MAPPING
         echo "STAR mapping for ${sra} for post-QC reads"
         # Paired-end alignment
-        STAR --runThreadN 10 \
+        STAR --runThreadN 12 \
              --genomeDir "${index_dir}" \
              --readFilesIn "${fastq1}" "${fastq2}" \
              --readFilesCommand zcat \
@@ -171,13 +171,13 @@ while IFS= read -r sra; do
              --outSAMtype BAM SortedByCoordinate \
              --outSAMunmapped Within \
              --outSAMattributes Standard \
-             --sjdbOverhang 100 \
+             --sjdbOverhang 99 \
              --quantMode TranscriptomeSAM GeneCounts \
              --twopassMode Basic \
              2>&1 | tee -a "${filename_path}/logs/${sra}_qc_star.log"
 
         echo "STAR mapping for ${sra} for raw reads"
-        STAR --runThreadN 10 \
+        STAR --runThreadN 12 \
              --genomeDir "${index_dir}" \
              --readFilesIn "${fastr1}" "${fastr2}" \
              --readFilesCommand zcat \
@@ -185,7 +185,7 @@ while IFS= read -r sra; do
              --outSAMtype BAM SortedByCoordinate \
              --outSAMunmapped Within \
              --outSAMattributes Standard \
-             --sjdbOverhang 100 \
+             --sjdbOverhang 99 \
              --quantMode TranscriptomeSAM GeneCounts \
              --twopassMode Basic \
              2>&1 | tee -a "${filename_path}/logs/${sra}_raw_star.log"
@@ -197,7 +197,7 @@ while IFS= read -r sra; do
         bamraw="${filename_path}/bam/${sra}_raw"
     echo "STAR mapping for ${sra} for post-QC reads"
         # Paired-end alignment
-        STAR --runThreadN 10 \
+        STAR --runThreadN 12 \
              --genomeDir "${index_dir}" \
              --readFilesIn "${fastq1}" \
              --readFilesCommand zcat \
@@ -205,13 +205,13 @@ while IFS= read -r sra; do
              --outSAMtype BAM SortedByCoordinate \
              --outSAMunmapped Within \
              --outSAMattributes Standard \
-             --sjdbOverhang 100 \
+             --sjdbOverhang 99 \
              --quantMode TranscriptomeSAM GeneCounts \
              --twopassMode Basic \
              2>&1 | tee -a "${filename_path}/logs/${sra}_qc_star.log"
 
         echo "STAR mapping for ${sra} for raw reads"
-        STAR --runThreadN 10 \
+        STAR --runThreadN 12 \
              --genomeDir "${index_dir}" \
              --readFilesIn "${fastr1}" \
              --readFilesCommand zcat \
@@ -219,7 +219,7 @@ while IFS= read -r sra; do
              --outSAMtype BAM SortedByCoordinate \
              --outSAMunmapped Within \
              --outSAMattributes Standard \
-             --sjdbOverhang 100 \
+             --sjdbOverhang 99 \
              --quantMode TranscriptomeSAM GeneCounts \
              --twopassMode Basic \
              2>&1 | tee -a "${filename_path}/logs/${sra}_raw_star.log"
