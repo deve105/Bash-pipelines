@@ -9,7 +9,9 @@ ref_dir="/home/htlvatl/coreapps/2025_refgenomes/2601_001_di_htlv1_ebv_hg38"
 merged_fasta="${ref_dir}/2601_001_rf_htlv1_ebv_hg38.fa"
 merged_gtf="${ref_dir}/2601_001_rf_htlv1_ebv_hg38.gtf"
 index_dir="${ref_dir}/2601_001_rf_star_index_merged"
-
+overhang=99 
+#SAindex=min(14, log2(GenomeLength)/2 - 1)
+SAindex=14
 
 cd "$ref_dir"
 
@@ -118,11 +120,11 @@ if STAR --runMode genomeGenerate \
     --genomeFastaFiles "$merged_fasta" \
     --sjdbGTFfile "$merged_gtf" \
     --runThreadN "$num_threads" \
-    --sjdbOverhang 99 \
+    --sjdbOverhang "$overhang" \
     --limitGenomeGenerateRAM "$genome_size_limit" \
     --outTmpDir "${index_dir}_tmp" \
     --outFileNamePrefix "${index_dir}/" \
-    --genomeSAindexNbases 14; then
+    --genomeSAindexNbases "${SAindex}/"; then
     
     echo ""
     echo "✅ STAR index generation completed successfully!"
