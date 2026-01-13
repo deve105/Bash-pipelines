@@ -15,7 +15,7 @@ filename_path="${hdd_tmp}/${filename}"
 ref_dir="/home/htlvatl/coreapps/2025_refgenomes/2601_001_di_htlv1_ebv_hg38"
 merged_fasta="${ref_dir}/2601_001_rf_htlv1_ebv_hg38.fa"
 merged_gtf="${ref_dir}/2601_001_rf_htlv1_ebv_hg38.gtf"
-index_dir="${ref_dir}/2601_001_rf_star_index_merged"
+index_dir="${ref_dir}/2601_001_rf_star_index_merged_h74"
 
 #-If an argument is needed
 if [ $# -eq 0 ]; then
