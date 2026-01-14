@@ -10,6 +10,12 @@ hdd_tmp="/media/htlvatl/mem"
 filename=$(basename "$1")
 filename="${filename%.*}" # Removes the last extension
 filename_path="${hdd_tmp}/${filename}"
+platform="ILLUMINA"
+numthreads=16
+overhang=73
+
+
+
 
 # STAR index directory
 ref_dir="/home/htlvatl/coreapps/2025_refgenomes/2601_001_di_htlv1_ebv_hg38"
@@ -71,8 +77,6 @@ echo "✅ All dependencies found"
 # STEP 2 - PROCESS SRA IDS
 # ============================================================================
 
-
-
 # Step 3 - Download SRA data
 while IFS= read -r sra; do
     cd "${hdd_tmp}"
@@ -86,7 +90,7 @@ while IFS= read -r sra; do
 
     # Step 3.2 - Convert SRA to FASTQ using fasterq-dump
     if ! fasterq-dump --mem 30G \
-                      --threads 12 \
+                      --threads "${numthreads}" \
                       --skip-technical \
                       --outdir "${filename_path}/rawdata/" \
                       --temp "${filename_path}" \
@@ -152,85 +156,106 @@ while IFS= read -r sra; do
         echo "Error: No valid FASTQ files found for $sra"
         exit 1
     fi
+    # Step 3 - Download SRA data
     if [ -f "${filename_path}/rawdata/${sra}_postqc_1.fq.gz" ] && [ -f "${filename_path}/rawdata/${sra}_postqc_2.fq.gz" ]; then
         echo "Mapping for paired-end reads: ${sra}"
         fastq1="${filename_path}/rawdata/${sra}_postqc_1.fq.gz"
         fastq2="${filename_path}/rawdata/${sra}_postqc_2.fq.gz"
-        fastr1="${filename_path}/rawdata/${sra}_1.fq.gz"
-        fastr2="${filename_path}/rawdata/${sra}_2.fq.gz"
-        bamq="${filename_path}/bam/${sra}_postqc"
-        bamraw="${filename_path}/bam/${sra}_raw"
+        bamq="${filename_path}/bam/${sra}_postqc_"
         #MAPPING
         echo "STAR mapping for ${sra} for post-QC reads"
         # Paired-end alignment
-        STAR --runThreadN 12 \
-             --genomeDir "${index_dir}" \
-             --readFilesIn "${fastq1}" "${fastq2}" \
-             --readFilesCommand zcat \
-             --outFileNamePrefix "${bamq}" \
-             --outSAMtype BAM SortedByCoordinate \
-             --outSAMunmapped Within \
-             --outSAMattributes Standard \
-             --sjdbOverhang 99 \
-             --quantMode TranscriptomeSAM GeneCounts \
-             --twopassMode Basic \
+        STAR --twopassMode Basic \
+                --runThreadN "${numthreads}" \
+                --genomeDir "${index_dir}" \
+                --readFilesIn "${fastq1}" "${fastq2}" \
+                --readFilesCommand zcat \
+                --sjdbOverhang "${overhang}" \
+                --outSAMtype BAM SortedByCoordinate \
+                --sjdbGTFfile "${merged_gtf}"  \
+                --twopass1readsN -1 \
+                --quantMode TranscriptomeSAM GeneCounts \
+                --outSAMattrRGline ID:$sra SM:$sra PL:$platform \
+                --outFileNamePrefix "${bamq}" \
+                --outFilterMultimapScoreRange 1 \
+                --outFilterMultimapNmax 20 \
+                --outFilterMismatchNmax 10 \
+                --alignIntronMax 500000 \
+                --alignMatesGapMax 1000000 \
+                --sjdbScore 2 \
+                --alignSJDBoverhangMin 1 \
+  	            --outFilterMatchNminOverLread 0.33 \
+                --outFilterScoreMinOverLread 0.33 \
+                --outSAMattributes NH HI NM MD AS XS nM \
+                --outSAMunmapped Within \
+                --chimSegmentMin 12 \
+                --chimJunctionOverhangMin 8 \
+                --chimOutJunctionFormat 1 \
+                --alignSJstitchMismatchNmax 5 -1 5 5 \
+                --chimMultimapScoreRange 3 \
+                --chimScoreJunctionNonGTAG -4 \
+                --chimMultimapNmax 20 \
+                --chimNonchimScoreDropMin 10 \
+                --peOverlapNbasesMin 12 \
+                --peOverlapMMp 0.1 \
+                --alignInsertionFlush Right \
+                --alignSplicedMateMapLminOverLmate 0 \
+                --alignSplicedMateMapLmin 30 \
              2>&1 | tee -a "${filename_path}/logs/${sra}_qc_star.log"
+        samtools index ${bamq}Aligned.sortedByCoord.out.bam
+        rm -f "${filename_path}/rawdata/${sra}_1.fq.gz"
+        rm -f "${filename_path}/rawdata/${sra}_2.fq.gz"
+        rm -f "${filename_path}/rawdata/${sra}_postqc_1.fq.gz"
+        rm -f "${filename_path}/rawdata/${sra}_postqc_2.fq.gz"
 
-        echo "STAR mapping for ${sra} for raw reads"
-        STAR --runThreadN 12 \
-             --genomeDir "${index_dir}" \
-             --readFilesIn "${fastr1}" "${fastr2}" \
-             --readFilesCommand zcat \
-             --outFileNamePrefix "${bamraw}" \
-             --outSAMtype BAM SortedByCoordinate \
-             --outSAMunmapped Within \
-             --outSAMattributes Standard \
-             --sjdbOverhang 99 \
-             --quantMode TranscriptomeSAM GeneCounts \
-             --twopassMode Basic \
-             2>&1 | tee -a "${filename_path}/logs/${sra}_raw_star.log"
     elif [ -f "${filename_path}/rawdata/${sra}_postqc_1.fq.gz" ]; then 
     echo "Mapping for single-end reads: ${sra}"
         fastq1="${filename_path}/rawdata/${sra}_postqc_1.fq.gz"
-        fastr1="${filename_path}/rawdata/${sra}_1.fq.gz"
         bamq="${filename_path}/bam/${sra}_postqc"
-        bamraw="${filename_path}/bam/${sra}_raw"
     echo "STAR mapping for ${sra} for post-QC reads"
         # Paired-end alignment
-        STAR --runThreadN 12 \
-             --genomeDir "${index_dir}" \
-             --readFilesIn "${fastq1}" \
-             --readFilesCommand zcat \
-             --outFileNamePrefix "${bamq}" \
-             --outSAMtype BAM SortedByCoordinate \
-             --outSAMunmapped Within \
-             --outSAMattributes Standard \
-             --sjdbOverhang 99 \
-             --quantMode TranscriptomeSAM GeneCounts \
-             --twopassMode Basic \
+        STAR --twopassMode Basic \
+                --runThreadN "${numthreads}" \
+                --genomeDir "${index_dir}" \
+                --readFilesIn "${fastq1}" \
+                --readFilesCommand zcat \
+                --sjdbOverhang "${overhang}" \
+                --outSAMtype BAM SortedByCoordinate \
+                --sjdbGTFfile "${merged_gtf}"  \
+                --twopass1readsN -1 \
+                --quantMode TranscriptomeSAM GeneCounts \
+                --outSAMattrRGline ID:$sra SM:$sra PL:$platform \
+                --outFileNamePrefix "${bamq}" \
+                --outFilterMultimapScoreRange 1 \
+                --outFilterMultimapNmax 20 \
+                --outFilterMismatchNmax 10 \
+                --alignIntronMax 500000 \
+                --alignMatesGapMax 1000000 \
+                --sjdbScore 2 \
+                --alignSJDBoverhangMin 1 \
+  	            --outFilterMatchNminOverLread 0.33 \
+                --outFilterScoreMinOverLread 0.33 \
+                --outSAMattributes NH HI NM MD AS XS nM \
+                --outSAMunmapped Within \
+                --chimSegmentMin 12 \
+                --chimJunctionOverhangMin 8 \
+                --chimOutJunctionFormat 1 \
+                --alignSJstitchMismatchNmax 5 -1 5 5 \
+                --chimMultimapScoreRange 3 \
+                --chimScoreJunctionNonGTAG -4 \
+                --chimMultimapNmax 20 \
+                --chimNonchimScoreDropMin 10 \
+                --peOverlapNbasesMin 12 \
+                --peOverlapMMp 0.1 \
+                --alignInsertionFlush Right \
+                --alignSplicedMateMapLminOverLmate 0 \
+                --alignSplicedMateMapLmin 30 \
              2>&1 | tee -a "${filename_path}/logs/${sra}_qc_star.log"
-
-        echo "STAR mapping for ${sra} for raw reads"
-        STAR --runThreadN 12 \
-             --genomeDir "${index_dir}" \
-             --readFilesIn "${fastr1}" \
-             --readFilesCommand zcat \
-             --outFileNamePrefix "${bamraw}" \
-             --outSAMtype BAM SortedByCoordinate \
-             --outSAMunmapped Within \
-             --outSAMattributes Standard \
-             --sjdbOverhang 99 \
-             --quantMode TranscriptomeSAM GeneCounts \
-             --twopassMode Basic \
-             2>&1 | tee -a "${filename_path}/logs/${sra}_raw_star.log"
+        samtools index ${bamq}Aligned.sortedByCoord.out.bam
+        rm -f "${filename_path}/rawdata/${sra}_1.fq.gz"
+        rm -f "${filename_path}/rawdata/${sra}_postqc_1.fq.gz"
  
     fi
-
-    ## Deleting intermediate files to save space
-    rm -f "${filename_path}/rawdata/${sra}_1.fq.gz"
-    rm -f "${filename_path}/rawdata/${sra}_2.fq.gz"
-    rm -f "${filename_path}/rawdata/${sra}_postqc_1.fq.gz"
-    rm -f "${filename_path}/rawdata/${sra}_postqc_2.fq.gz"
 
 done < "$1"
 
