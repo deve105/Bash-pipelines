@@ -142,7 +142,7 @@ while IFS= read -r sra; do
         exit 1
     fi
     echo "${sra} was downloaded and processed :)"
-    if [ -f "${filename_disc}/rawdata/${sra}_1.fq.gz" ] && [ -f "${filename_disc}/rawdata/${sra}_2.fq.gz" ]; then
+    if [ -f "${filename_disc}/rawdata/${sra}_1.fastq.gz" ] && [ -f "${filename_disc}/rawdata/${sra}_2.fastq.gz" ]; then
         echo "Performing fastp quality control for paired-end reads: ${sra}"
     # Paired-end mode
         fastp -i "${filename_disc}/rawdata/${sra}_1.fastq.gz" \
