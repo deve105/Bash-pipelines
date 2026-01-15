@@ -122,10 +122,10 @@ while IFS= read -r sra; do
                       "${sra}" \
                       2>&1 | tee -a "${filename_disc}/logs/${sra}_fasterq_dump.log"; then
         echo "Error: fasterq-dump failed for ${sra}"
-        rm -rf "${disc_tmp}/${sra}"
+        
         exit 1
     fi
-
+    rm -rf "${disc_tmp}/${sra}"
 		
 	# Check if the files are paired-end or single-end
     if [ -f "${filename_disc}/rawdata/${sra}_1.fastq" ] && [ -f "${filename_disc}/rawdata/${sra}_2.fastq" ]; then
