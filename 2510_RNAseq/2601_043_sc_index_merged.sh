@@ -8,14 +8,15 @@ echo "🧬 Indexing Fasta in STAR"
 ref_dir="/home/htlvatl/coreapps/2025_refgenomes/2601_001_di_htlv1_ebv_hg38"
 merged_fasta="${ref_dir}/2601_001_rf_htlv1_ebv_hg38.fa"
 merged_gtf="${ref_dir}/2601_001_rf_htlv1_ebv_hg38.gtf"
-index_dir="${ref_dir}/2601_001_rf_star_index_merged_h74"
-
+index_dir="${ref_dir}/2601_001_rf_star_index_merged_h149"
+SAindex=14
+overhang=149
 
 cd "$ref_dir"
 
 # Determine number of threads (use nproc for auto-detection)
 #num_threads=${1:-$(nproc)}
-num_threads=10
+num_threads=16
 # Calculate RAM needed (STAR recommends ~30GB per genome copy)
 # For safety with large genomes, use 60GB
 
@@ -118,11 +119,11 @@ if STAR --runMode genomeGenerate \
     --genomeFastaFiles "$merged_fasta" \
     --sjdbGTFfile "$merged_gtf" \
     --runThreadN "$num_threads" \
-    --sjdbOverhang 73 \
+    --sjdbOverhang "${overhang}" \
     --limitGenomeGenerateRAM "$genome_size_limit" \
     --outTmpDir "${index_dir}_tmp" \
     --outFileNamePrefix "${index_dir}/" \
-    --genomeSAindexNbases "${SAindex}/"; then
+    --genomeSAindexNbases "${SAindex}"; then
     
     echo ""
     echo "✅ STAR index generation completed successfully!"

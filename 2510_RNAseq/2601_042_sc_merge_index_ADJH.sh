@@ -10,7 +10,7 @@ hg="GRCh38.primary_assembly.genome"
 hg2="gencode.v49.primary_assembly.annotation"
 specif_dir="${ref_dir}/2601_001_di_htlv1_hg38_ADJH"
 final_name="2601_001_rf_htlv1_hg38_ADJH"
-htlv1="ADJH"
+htlv1="26_ADJH_HTLV1_tax"
 SAindex=14
 merged_gtf="${specif_dir}/${final_name}.gtf"
 
@@ -23,22 +23,25 @@ cd "$ref_dir"
 
 # Determine number of threads (use nproc for auto-detection)
 #num_threads=${1:-$(nproc)}
-num_threads=16
+num_threads=8
 # Calculate RAM needed (STAR recommends ~30GB per genome copy)
 # For safety with large genomes, use 60GB
 
-genome_size_limit=80000000000
+genome_size_limit=60000000000
 
 cd "$ref_dir"
 
 mkdir -p "${specif_dir}"
 mkdir -p "${index_dir}"
 
+### ============================================================================
+if false; then
+
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "STEP 1: Merging FASTA Files"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-echo "🔗 Merging fasta GRCh38 with HTLV-1, EBV and CMV..."
+echo "🔗 Merging fasta GRCh38 with HTLV-1..."
 
 cat "${hg}.fa" "${htlv1}.fa"  > "${specif_dir}/${final_name}.fa"
 
@@ -46,7 +49,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "STEP 1: Merging GTF Files"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-echo "🔗 Merging GTF GRCh38 with HTLV-1 and EBV..."
+echo "🔗 Merging GTF GRCh38 with HTLV-1..."
 
 echo "🔗 Merging GTF files..."
 
@@ -98,7 +101,9 @@ done
 
 echo "✅ Cleanup completed"
 
- ============================================================================
+
+
+# ============================================================================
 # VALIDATION
 # ============================================================================
 
@@ -175,7 +180,8 @@ echo "✅ Index directory ready: $index_dir"
 
 # Change to working directory
 cd "$ref_dir"
-
+    
+fi
 # ============================================================================
 # STEP 3: GENERATE STAR INDEX
 # ============================================================================
@@ -197,7 +203,7 @@ if STAR --runMode genomeGenerate \
     --limitGenomeGenerateRAM "$genome_size_limit" \
     --outTmpDir "${index_dir}_tmp" \
     --outFileNamePrefix "${index_dir}/" \
-    --genomeSAindexNbases "${SAindex}/"; then
+    --genomeSAindexNbases "${SAindex}"; then
     
     echo ""
     echo "✅ STAR index generation completed successfully!"
