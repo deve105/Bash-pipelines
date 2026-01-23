@@ -1,0 +1,21 @@
+## --- TAX (spliced) ---
+J02029.1	RefSeq	gene	376	8382	.	+	.	gene_id "tax"; gene_name "tax";
+J02029.1	RefSeq	transcript	376	8382	.	+	.	gene_id "tax"; transcript_id "tax.t1";
+J02029.1	RefSeq	exon	376	494	.	+	.	gene_id "tax"; transcript_id "tax.t1"; exon_number "1";
+J02029.1	RefSeq	exon	5016	5206	.	+	.	gene_id "tax"; transcript_id "tax.t1"; exon_number "2";
+J02029.1	RefSeq	exon	7325	8382	.	+	.	gene_id "tax"; transcript_id "tax.t1"; exon_number "3";
+J02029.1	RefSeq	CDS	5203	8382	.	+	0	gene_id "tax"; transcript_id "tax.t1";
+
+## --- REX (spliced) ---
+J02029.1	RefSeq	gene	376	8382	.	+	.	gene_id "rex"; gene_name "rex";
+J02029.1	RefSeq	transcript	376	8382	.	+	.	gene_id "rex"; transcript_id "rex.t1";
+J02029.1	RefSeq	exon	376	494	.	+	.	gene_id "rex"; transcript_id "rex.t1"; exon_number "1";
+J02029.1	RefSeq	exon	5147	5206	.	+	.	gene_id "rex"; transcript_id "rex.t1"; exon_number "2";
+J02029.1	RefSeq	exon	7324	8382	.	+	.	gene_id "rex"; transcript_id "rex.t1"; exon_number "3";
+J02029.1	RefSeq	CDS	5147	8382	.	+	0	gene_id "rex"; transcript_id "rex.t1";
+
+## --- ENV (two-exon transcript, my coordinates) ---
+J02029.1	RefSeq	gene	7324	8382	.	+	.	gene_id "env"; gene_name "env";
+J02029.1	RefSeq	transcript	7324	8382	.	+	.	gene_id "env"; transcript_id "env.t1";
+J02029.1	RefSeq	exon	7324	8382	.	+	.	gene_id "env"; transcript_id "env.t1"; exon_number "1";
+J02029.1	RefSeq	CDS	7324	8382	.	+	0	gene_id "env"; transcript_id "env.t1";
