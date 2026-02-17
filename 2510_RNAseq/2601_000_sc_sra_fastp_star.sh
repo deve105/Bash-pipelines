@@ -7,7 +7,7 @@ echo "by Daniel Enriquez Version V1.2 2026-01-07"
 
 
 disc_tmp="/home/htlvatl/Documents/devapps/temp"
-hdd_tmp="/media/htlvatl/mem"
+hdd_tmp="/media/htlvatl/b9ede945-825f-40bd-b7b8-b8234d82f0ab"
 filename=$(basename "$1")
 filename="${filename%.*}" # Removes the last extension
 filename_path="${hdd_tmp}/${filename}"
