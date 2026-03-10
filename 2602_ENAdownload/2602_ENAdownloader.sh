@@ -187,7 +187,7 @@ while IFS= read -r sra; do
     sra=$(echo "$sra" | xargs)
     
     # Check if already downloaded (avoid re-downloading)
-    output_dir="${hdd_tmp}/rawdata"
+    output_dir="${filename_path}/rawdata"
     if [ -d "$output_dir" ] && find "$output_dir" -name "*${sra}*" -type f | grep -q .; then
         log_success "  ✓ Already exists: $sra (skipping)"
         successful_samples+=("$sra")
