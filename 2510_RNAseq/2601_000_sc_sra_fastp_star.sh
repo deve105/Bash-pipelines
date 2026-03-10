@@ -8,10 +8,7 @@ echo "by Daniel Enriquez Version V1.2 2026-01-07"
 
 disc_tmp="/home/htlvatl/Documents/devapps/temp"
 hdd_tmp="/media/htlvatl/b9ede945-825f-40bd-b7b8-b8234d82f0ab"
-filename=$(basename "$1")
-filename="${filename%.*}" # Removes the last extension
-filename_path="${hdd_tmp}/${filename}"
-filename_disc="${disc_tmp}/${filename}"
+
 platform="ILLUMINA"
 numthreads=16
 overhang=73
@@ -27,9 +24,10 @@ index_dir="${ref_dir}/2601_001_rf_star_index_merged_h74"
 ## ============================================================================
 ## PRE-REQUISITES CHECKS - File arguments
 ## ============================================================================
+
 #-If an argument is needed
 if [ $# -eq 0 ]; then
-	printf "Usage: %s project.txt is needed.\n" "$0"
+	printf "Usage: %s project.csv is needed.\n" "$0"
 	exit 1
 fi
 
@@ -49,6 +47,10 @@ fi
 ## ============================================================================
 ## PRE-REQUISITES CHECKS - Folder arguments
 ## ============================================================================
+filename=$(basename "$1")
+filename="${filename%.*}" # Removes the last extension
+filename_path="${hdd_tmp}/${filename}"
+filename_disc="${disc_tmp}/${filename}"
 
 # Step 1 create project folder
 echo "Step 1. Create a folder for the project '$filename'"
@@ -69,7 +71,6 @@ else
 	echo "New folder '$filename_disc' created."
 	mkdir -p "${filename_disc}"/{rawdata,bam,logs,reports} #Creates the folder structure
 fi
-
 
 
 # ============================================================================
